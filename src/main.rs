@@ -6,6 +6,9 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+#[cfg(test)]
+use serial_test::serial;
+
 type EGraph = egg::EGraph<Trig, ConstantFold>;
 type Rewrite = egg::Rewrite<Trig, ConstantFold>;
 
@@ -709,14 +712,14 @@ fn sto_simplify(s: &str) -> (f64, RecExpr<Trig>) {
                         .with_normalizer(normalize_trig);
                 let mut rng = SimpleLcg::new(seed);
                 let config = StoConfig {
-                    max_stall: 1_000,
+                    max_stall: 10_000,
                     max_restart: usize::MAX,
                     max_iter: usize::MAX,
                     max_time: timeout,
                     beta_schedule: Box::new(PeriodicBeta {
-                        random_walk_steps: 3,
+                        random_walk_steps: 20,
                         beta: 1.0,
-                        interval: 1000,
+                        interval: 100,
                     }),
                 };
                 runner.run(config, &mut rng);
@@ -762,10 +765,12 @@ fn sto_check(lhs: &str, rhs: &str) {
 }
 
 #[test]
+#[serial]
 fn sto_trig_01() {
     sto_check("(* (* (sin t) (cos t)) (+ (tan t) (cot t)))", "1")
 }
 #[test]
+#[serial]
 fn sto_trig_02() {
     sto_check(
         "(- (pow (sin t) 4) (pow (cos t) 4))",
@@ -773,6 +778,7 @@ fn sto_trig_02() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_03() {
     sto_check(
         "(+ (- (pow (sin t) 4) (pow (cos t) 4)) 1)",
@@ -780,6 +786,7 @@ fn sto_trig_03() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_04() {
     sto_check(
         "(- (pow (cos t) 4) (pow (sin t) 4))",
@@ -787,6 +794,7 @@ fn sto_trig_04() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_05() {
     sto_check(
         "(* (* (sin a) (cos a)) (- (tan a) (cot a)))",
@@ -794,6 +802,7 @@ fn sto_trig_05() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_06() {
     sto_check(
         "(+ (pow (+ (cos A) (sin A)) 2) (pow (- (cos A) (sin A)) 2))",
@@ -801,6 +810,7 @@ fn sto_trig_06() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_07() {
     sto_check(
         "(+ (pow (+ 1 (tan t)) 2) (pow (- 1 (tan t)) 2))",
@@ -808,6 +818,7 @@ fn sto_trig_07() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_08() {
     sto_check(
         "(+ (/ 1 (+ 1 (cos A))) (/ 1 (- 1 (cos A))))",
@@ -815,6 +826,7 @@ fn sto_trig_08() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_09() {
     sto_check(
         "(/ (+ 1 (cos t)) (- 1 (cos t)))",
@@ -822,6 +834,7 @@ fn sto_trig_09() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_10() {
     sto_check(
         "(- (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))",
@@ -829,6 +842,7 @@ fn sto_trig_10() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_11() {
     sto_check(
         "(+ (/ 1 (- 1 (cos A))) (/ 1 (+ 1 (cos A))))",
@@ -836,6 +850,7 @@ fn sto_trig_11() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_12() {
     sto_check(
         "(* (+ (+ 1 (sec A)) (tan A)) (+ (- 1 (csc A)) (cot A)))",
@@ -843,6 +858,7 @@ fn sto_trig_12() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_13() {
     sto_check(
         "(+ (/ (cos A) (+ 1 (sin A))) (/ (cos A) (- 1 (sin A))))",
@@ -850,6 +866,7 @@ fn sto_trig_13() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_14() {
     sto_check(
         "(+ (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))",
@@ -857,6 +874,7 @@ fn sto_trig_14() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_15() {
     sto_check(
         "(+ (/ 1 (+ (sin A) (cos A))) (/ 1 (- (sin A) (cos A))))",
@@ -864,6 +882,7 @@ fn sto_trig_15() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_16() {
     sto_check(
         "(/ (+ 1 (sin t)) (- 1 (sin t)))",
@@ -871,10 +890,12 @@ fn sto_trig_16() {
     )
 }
 // #[test]
+// #[serial]
 // fn sto_trig_17() {
 //     sto_check("(/ (- 1 (sin A)) (cos A))", "(/ (cos A) (+ 1 (sin A)))")
 // }
 #[test]
+#[serial]
 fn sto_trig_18() {
     sto_check(
         "(+ (/ (cos t) (+ 1 (sin t))) (/ (+ 1 (sin t)) (cos t)))",
@@ -882,6 +903,7 @@ fn sto_trig_18() {
     )
 }
 // #[test]
+// #[serial]
 // fn sto_trig_19() {
 //     sto_check(
 //         "(pow (/ (+ 1 (cos A)) (sin A)) 2)",
@@ -889,6 +911,7 @@ fn sto_trig_18() {
 //     )
 // }
 #[test]
+#[serial]
 fn sto_trig_20() {
     sto_check(
         "(+ (/ (sin A) (+ 1 (cos A))) (/ (+ 1 (cos A)) (sin A)))",
@@ -896,6 +919,7 @@ fn sto_trig_20() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_21() {
     sto_check(
         "(* (* (+ 1 (cos t)) (- 1 (cos t))) (+ 1 (pow (cot t) 2)))",
@@ -903,10 +927,12 @@ fn sto_trig_21() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_22() {
     sto_check("(* (* (+ 1 (pow (tan A) 2)) (sin A)) (cos A))", "(tan A)")
 }
 #[test]
+#[serial]
 fn sto_trig_23() {
     sto_check(
         "(/ (- (pow (sin b) 2) (pow (sin a) 2)) (* (pow (sin a) 2) (pow (sin b) 2)))",
@@ -914,14 +940,17 @@ fn sto_trig_23() {
     )
 }
 // #[test]
+// #[serial]
 // fn sto_trig_24() {
 //     sto_check("(+ (tan A) (cot A))", "(* (sec A) (csc A))")
 // }
 #[test]
+#[serial]
 fn sto_trig_25() {
     sto_check("(/ (csc A) (+ (tan A) (cot A)))", "(cos A)")
 }
 // #[test]
+// #[serial]
 // fn sto_trig_26() {
 //     sto_check(
 //         "(+ (pow (sec t) 2) (pow (csc t) 2))",
@@ -929,6 +958,7 @@ fn sto_trig_25() {
 //     )
 // }
 #[test]
+#[serial]
 fn sto_trig_27() {
     sto_check(
         "(+ (+ (pow (tan t) 2) (pow (cot t) 2)) 2)",
@@ -936,6 +966,7 @@ fn sto_trig_27() {
     )
 }
 // #[test]
+// #[serial]
 // fn sto_trig_28() {
 //     sto_check(
 //         "(+ (pow (tan t) 4) (pow (tan t) 2))",
@@ -943,6 +974,7 @@ fn sto_trig_27() {
 //     )
 // }
 #[test]
+#[serial]
 fn sto_trig_29() {
     sto_check(
         "(+ (- (pow (csc t) 4) (* 2 (pow (csc t) 2))) (- (* 2 (pow (sec t) 2)) (pow (sec t) 4)))",
@@ -950,6 +982,7 @@ fn sto_trig_29() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_30() {
     sto_check(
         "(/ (- (sin A) (* 2 (pow (sin A) 3))) (- (* 2 (pow (cos A) 3)) (cos A)))",
@@ -957,6 +990,7 @@ fn sto_trig_30() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_31() {
     sto_check(
         "(+ (/ (cos t) (+ (csc t) 1)) (/ (cos t) (- (csc t) 1)))",
@@ -964,6 +998,7 @@ fn sto_trig_31() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_32() {
     sto_check(
         "(+ (/ (cos t) (- 1 (tan t))) (/ (sin t) (- 1 (cot t))))",
@@ -971,6 +1006,7 @@ fn sto_trig_32() {
     )
 }
 // #[test]
+// #[serial]
 // fn sto_trig_33() {
 //     sto_check(
 //         "(- (/ 1 (- (sec t) (tan t))) (/ 1 (cos t)))",
@@ -978,6 +1014,7 @@ fn sto_trig_32() {
 //     )
 // }
 #[test]
+#[serial]
 fn sto_trig_34() {
     sto_check(
         "(+ (/ (tan t) (+ (sec t) 1)) (/ (tan t) (- (sec t) 1)))",
@@ -985,6 +1022,7 @@ fn sto_trig_34() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_35() {
     sto_check(
         "(* (- (+ (sec t) (tan t)) 1) (+ (- (sec t) (tan t)) 1))",
@@ -992,6 +1030,7 @@ fn sto_trig_35() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_36() {
     sto_check(
         "(/ (+ (tan A) (cot B)) (+ (cot A) (tan B)))",
@@ -999,6 +1038,7 @@ fn sto_trig_36() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_37() {
     sto_check(
         "(/ (- (+ (tan A) (sec A)) 1) (+ (- (tan A) (sec A)) 1))",
@@ -1006,6 +1046,7 @@ fn sto_trig_37() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_38() {
     sto_check(
         "(- (/ (+ 1 (sin a)) (- (csc a) (cot a))) (/ (- 1 (sin a)) (+ (csc a) (cot a))))",
@@ -1013,6 +1054,7 @@ fn sto_trig_38() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_39() {
     sto_check(
         "(+ (/ 1 (- (+ (cos t) (sin t)) 1)) (/ 1 (+ (+ (cos t) (sin t)) 1)))",
@@ -1020,6 +1062,7 @@ fn sto_trig_39() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_40() {
     sto_check(
         "(+ (/ (tan A) (- 1 (cot A))) (/ (cot A) (- 1 (tan A))))",
@@ -1027,6 +1070,7 @@ fn sto_trig_40() {
     )
 }
 #[test]
+#[serial]
 fn sto_trig_41() {
     sto_check(
         "(- (pow (- (sec x) 1) 2) (pow (- (tan x) (sin x)) 2))",

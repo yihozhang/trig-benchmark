@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 egg = { path = "../egg" }
+serial_test = "3.4.0"
