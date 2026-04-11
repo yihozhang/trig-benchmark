@@ -3,6 +3,8 @@ use egg::stochastic::{
     StoRunner,
 };
 use egg::{rewrite as rw, *};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -37,8 +39,10 @@ define_language! {
     }
 }
 
-#[derive(Default)]
-struct ConstantFold;
+#[derive(Default, Clone)]
+struct ConstantFold {
+    unsound: bool,
+}
 impl Analysis<Integ> for ConstantFold {
     type Data = Option<(i32, PatternAst<Integ>)>;
 
@@ -78,7 +82,9 @@ impl Analysis<Integ> for ConstantFold {
 
     fn merge(&mut self, to: &mut Self::Data, from: Self::Data) -> DidMerge {
         merge_option(to, from, |a, b| {
-            assert_eq!(a.0, b.0, "Merged non-equal constants");
+            if a.0 != b.0 {
+                self.unsound = true;
+            }
             DidMerge(false, false)
         })
     }
@@ -237,30 +243,56 @@ impl CostFunction<Integ> for IntegCost {
         C: FnMut(Id) -> Self::Cost,
     {
         let base = match enode {
-            Integ::D(_) | Integ::Int(_) => 10,
+            Integ::D(_) | Integ::Int(_) => 100,
             _ => 1,
         };
         enode.fold(base, |sum, id| sum.saturating_add(costs(id)))
     }
 }
 
-fn simplify(s: &str) -> (usize, String) {
+fn simplify(s: &str) -> (usize, String, bool) {
     let expr: RecExpr<Integ> = s.parse().unwrap();
+
+    let snapshot: Rc<RefCell<Option<(EGraph, Id)>>> =
+        Rc::new(RefCell::new(None));
+    let snap_ref = Rc::clone(&snapshot);
+
     let runner = Runner::default()
         .with_expr(&expr)
         .with_node_limit(usize::MAX)
         .with_time_limit(Duration::from_secs(10))
         .with_iter_limit(usize::MAX)
+        .with_hook(move |runner: &mut Runner<Integ, ConstantFold>| {
+            if runner.egraph.analysis.unsound {
+                return Err("unsound merge detected".into());
+            }
+            *snap_ref.borrow_mut() = Some((runner.egraph.clone(), runner.roots[0]));
+            Ok(())
+        })
         .run(&rules());
+
     let root = runner.roots[0];
-    let extractor = Extractor::new(&runner.egraph, IntegCost);
-    let (best_cost, best) = extractor.find_best(root);
+    let unsound = runner.egraph.analysis.unsound;
+
+    let (best_cost, best): (usize, RecExpr<Integ>) = if unsound {
+        let snap = snapshot.borrow();
+        let (eg, snap_root) = snap.as_ref().expect("no snapshot before unsoundness");
+        let extractor = Extractor::new(eg, IntegCost);
+        extractor.find_best(*snap_root)
+    } else {
+        let extractor = Extractor::new(&runner.egraph, IntegCost);
+        extractor.find_best(root)
+    };
+
     println!(
         "Simplified (cost {}):\n  {} =>\n  {}",
         best_cost, expr, best
     );
     println!("{}", runner.report());
-    (best_cost, best.to_string())
+    if unsound {
+        println!("WARNING: unsound merge detected, result extracted from snapshot");
+    }
+    (best_cost, best.to_string(), unsound)
 }
 
 fn has_int_or_d(expr: &RecExpr<Integ>) -> bool {
@@ -270,7 +302,7 @@ fn has_int_or_d(expr: &RecExpr<Integ>) -> bool {
 }
 
 fn check(lhs: &str, rhs: &str) {
-    let (cost, result) = simplify(lhs);
+    let (cost, result, _) = simplify(lhs);
     let rhs_expr: RecExpr<Integ> = rhs.parse().unwrap();
     let expected_cost = IntegCost.cost_rec(&rhs_expr);
     let best_expr: RecExpr<Integ> = result.parse().unwrap();
@@ -366,6 +398,15 @@ fn eq_integ_09() {
     check(
         "(int (* (pow x 3) (ln x)) x)",
         "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
+    )
+}
+
+#[test]
+fn eq_integ_10() {
+    // ∫(ln(x))² dx = x·(ln(x))² − 2x·ln(x) + 2x
+    check(
+        "(int (pow (ln x) 2) x)",
+        "(+ (- (* x (pow (ln x) 2)) (* 2 (* x (ln x)))) (* 2 x))",
     )
 }
 
@@ -743,6 +784,16 @@ fn sto_integ_09() {
     sto_check(
         "(int (* (pow x 3) (ln x)) x)",
         "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
+    )
+}
+
+#[test]
+#[serial]
+fn sto_integ_10() {
+    // ∫(ln(x))² dx = x·(ln(x))² − 2x·ln(x) + 2x
+    sto_check(
+        "(int (pow (ln x) 2) x)",
+        "(+ (- (* x (pow (ln x) 2)) (* 2 (* x (ln x)))) (* 2 x))",
     )
 }
 

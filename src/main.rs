@@ -214,7 +214,7 @@ fn simplify(s: &str, explain: bool) -> (usize, String) {
     }
     let runner = runner.with_expr(&expr);
     let mut runner = runner
-        .with_node_limit(50_000_000)
+        .with_node_limit(usize::MAX)
         .with_time_limit(Duration::from_secs(10))
         .with_iter_limit(usize::MAX)
         .run(&rules(vars.into_iter()));
