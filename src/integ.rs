@@ -132,21 +132,21 @@ fn rules() -> Vec<Rewrite> {
         "(pow (+ ?a ?b) 2)"),
 
     // ── Integration — linearity ──────────────────────────────────────────────
-    rw!("int-add";       "(int (+ ?f ?g) x)" => "(+ (int ?f x) (int ?g x))"),
-    rw!("int-sub";       "(int (- ?f ?g) x)" => "(- (int ?f x) (int ?g x))"),
-    rw!("int-const-mul"; "(int (* ?c ?f) x)" => "(* ?c (int ?f x))" if is_const("?c")),
-    rw!("int-const";     "(int ?c x)" => "(* ?c x)" if is_const("?c")),
+    rw!("int-add";       "(int (+ ?f ?g) ?x)" => "(+ (int ?f ?x) (int ?g ?x))"),
+    rw!("int-sub";       "(int (- ?f ?g) ?x)" => "(- (int ?f ?x) (int ?g ?x))"),
+    rw!("int-const-mul"; "(int (* ?c ?f) ?x)" => "(* ?c (int ?f ?x))" if is_const("?c")),
+    rw!("int-const";     "(int ?c ?x)" => "(* ?c ?x)" if is_const("?c")),
 
     // ── Sqrt ─────────────────────────────────────────────────────────────────
     rw!("sqrt-sq";    "(pow (sqrt ?a) 2)" => "?a"),
     rw!("sq-sqrt";    "(sqrt (pow ?a 2))" => "?a"),
 
     // ── Integration — power rule ─────────────────────────────────────────────
-    rw!("int-var";       "(int x x)" => "(/ (pow x 2) 2)"),
-    rw!("int-pow";       "(int (pow x ?n) x)" =>
-        "(/ (pow x (+ ?n 1)) (+ ?n 1))" if is_const("?n") if is_not_neg1("?n")),
-    rw!("int-recip";     "(int (/ 1 x) x)" => "(ln x)"),
-    rw!("int-pow-neg1";  "(int (pow x -1) x)" => "(ln x)"),
+    rw!("int-var";       "(int ?x ?x)" => "(/ (pow ?x 2) 2)"),
+    rw!("int-pow";       "(int (pow ?x ?n) ?x)" =>
+        "(/ (pow ?x (+ ?n 1)) (+ ?n 1))" if is_const("?n") if is_not_neg1("?n")),
+    rw!("int-recip";     "(int (/ 1 ?x) ?x)" => "(ln ?x)"),
+    rw!("int-pow-neg1";  "(int (pow ?x -1) ?x)" => "(ln ?x)"),
 
     // ── Commutativity and associativity ──────────────────────────────────────
     rw!("comm-add";    "(+ ?a ?b)" => "(+ ?b ?a)"),
@@ -192,22 +192,24 @@ fn rules() -> Vec<Rewrite> {
     rw!("i-pow-neg";  "(/ 1 ?a)" => "(pow ?a -1)"),
 
     // ── Differentiation ───────────────────────────────────────────────────────
-    rw!("d-const";     "(d ?c x)" => "0" if is_const("?c")),
-    rw!("d-var";       "(d x x)" => "1"),
-    rw!("d-pow";       "(d (pow x ?n) x)" => "(* ?n (pow x (- ?n 1)))" if is_const("?n")),
-    rw!("d-const-mul"; "(d (* ?c ?f) x)" => "(* ?c (d ?f x))" if is_const("?c")),
-    rw!("d-sin";       "(d (sin x) x)" => "(cos x)"),
-    rw!("d-cos";       "(d (cos x) x)" => "(* -1 (sin x))"),
-    rw!("d-exp";       "(d (exp x) x)" => "(exp x)"),
+    rw!("d-const";     "(d ?c ?x)" => "0" if is_const("?c")),
+    rw!("d-var";       "(d ?x ?x)" => "1"),
+    rw!("d-pow";       "(d (pow ?x ?n) ?x)" => "(* ?n (pow ?x (- ?n 1)))" if is_const("?n")),
+    rw!("d-const-mul"; "(d (* ?c ?f) ?x)" => "(* ?c (d ?f ?x))" if is_const("?c")),
+    rw!("d-sin";       "(d (sin ?x) ?x)" => "(cos ?x)"),
+    rw!("d-cos";       "(d (cos ?x) ?x)" => "(* -1 (sin ?x))"),
+    rw!("d-exp";       "(d (exp ?x) ?x)" => "(exp ?x)"),
+    rw!("d-ln";        "(d (ln ?x) ?x)" => "(/ 1 ?x)"),
 
-    // ── Integration — trigonometric / exponential ────────────────────────────
-    rw!("int-sin";     "(int (sin x) x)" => "(* -1 (cos x))"),
-    rw!("int-cos";     "(int (cos x) x)" => "(sin x)"),
-    rw!("int-exp";     "(int (exp x) x)" => "(exp x)"),
+    // ── Integration — trigonometric / exponential / logarithmic ─────────────
+    rw!("int-sin";     "(int (sin ?x) ?x)" => "(* -1 (cos ?x))"),
+    rw!("int-cos";     "(int (cos ?x) ?x)" => "(sin ?x)"),
+    rw!("int-exp";     "(int (exp ?x) ?x)" => "(exp ?x)"),
+    rw!("int-ln";      "(int (ln ?x) ?x)" => "(- (* ?x (ln ?x)) ?x)"),
 
     // ── Integration by parts ─────────────────────────────────────────────────
-    rw!("ibp"; "(int (* ?u ?v) x)" =>
-        "(- (* ?u (int ?v x)) (int (* (d ?u x) (int ?v x)) x))"),
+    rw!("ibp"; "(int (* ?u ?v) ?x)" =>
+        "(- (* ?u (int ?v ?x)) (int (* (d ?u ?x) (int ?v ?x)) ?x))"),
 
     // ── Factoring ────────────────────────────────────────────────────────────
     rw!("diff-sq";    "(- (pow ?a 2) (pow ?b 2))" => "(* (+ ?a ?b) (- ?a ?b))"),
@@ -358,6 +360,15 @@ fn eq_integ_08() {
     )
 }
 
+#[test]
+fn eq_integ_09() {
+    // ∫x³·ln(x) dx = x⁴·ln(x)/4 − x⁴/16
+    check(
+        "(int (* (pow x 3) (ln x)) x)",
+        "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
+    )
+}
+
 // ── Stochastic search ────────────────────────────────────────────────────────
 
 #[derive(Default)]
@@ -476,24 +487,24 @@ fn sto_rules() -> Vec<IntegRw> {
         "(pow (+ ?a ?b) 2)"),
 
     // ── Integration — linearity ──────────────────────────────────────────────
-    sto_rw("int-add",       "(int (+ ?f ?g) x)", "(+ (int ?f x) (int ?g x))"),
-    sto_rw("int-sub",       "(int (- ?f ?g) x)", "(- (int ?f x) (int ?g x))"),
-    sto_rw_if("int-const-mul", "(int (* ?c ?f) x)", "(* ?c (int ?f x))", sto_is_const("?c")),
-    sto_rw_if("int-const",     "(int ?c x)",        "(* ?c x)",          sto_is_const("?c")),
+    sto_rw("int-add",       "(int (+ ?f ?g) ?x)", "(+ (int ?f ?x) (int ?g ?x))"),
+    sto_rw("int-sub",       "(int (- ?f ?g) ?x)", "(- (int ?f ?x) (int ?g ?x))"),
+    sto_rw_if("int-const-mul", "(int (* ?c ?f) ?x)", "(* ?c (int ?f ?x))", sto_is_const("?c")),
+    sto_rw_if("int-const",     "(int ?c ?x)",        "(* ?c ?x)",          sto_is_const("?c")),
 
     // ── Sqrt ─────────────────────────────────────────────────────────────────
     sto_rw("sqrt-sq",    "(pow (sqrt ?a) 2)", "?a"),
     sto_rw("sq-sqrt",    "(sqrt (pow ?a 2))", "?a"),
 
     // ── Integration — power rule ─────────────────────────────────────────────
-    sto_rw("int-var",       "(int x x)", "(/ (pow x 2) 2)"),
-    sto_rw_if("int-pow", "(int (pow x ?n) x)", "(/ (pow x (+ ?n 1)) (+ ?n 1))", {
+    sto_rw("int-var",       "(int ?x ?x)", "(/ (pow ?x 2) 2)"),
+    sto_rw_if("int-pow", "(int (pow ?x ?n) ?x)", "(/ (pow ?x (+ ?n 1)) (+ ?n 1))", {
         let c = sto_is_const("?n");
         let n = sto_is_not_neg1("?n");
         move |s, pos, subst| c(s, pos, subst) && n(s, pos, subst)
     }),
-    sto_rw("int-recip",     "(int (/ 1 x) x)", "(ln x)"),
-    sto_rw("int-pow-neg1",  "(int (pow x -1) x)", "(ln x)"),
+    sto_rw("int-recip",     "(int (/ 1 ?x) ?x)", "(ln ?x)"),
+    sto_rw("int-pow-neg1",  "(int (pow ?x -1) ?x)", "(ln ?x)"),
 
     // ── Commutativity and associativity ──────────────────────────────────────
     sto_rw("comm-add",    "(+ ?a ?b)", "(+ ?b ?a)"),
@@ -539,22 +550,24 @@ fn sto_rules() -> Vec<IntegRw> {
     sto_rw("i-pow-neg",  "(/ 1 ?a)", "(pow ?a -1)"),
 
     // ── Differentiation ───────────────────────────────────────────────────────
-    sto_rw_if("d-const",     "(d ?c x)",         "0",                        sto_is_const("?c")),
-    sto_rw("d-var",       "(d x x)", "1"),
-    sto_rw_if("d-pow",       "(d (pow x ?n) x)", "(* ?n (pow x (- ?n 1)))", sto_is_const("?n")),
-    sto_rw_if("d-const-mul", "(d (* ?c ?f) x)",  "(* ?c (d ?f x))",         sto_is_const("?c")),
-    sto_rw("d-sin",       "(d (sin x) x)", "(cos x)"),
-    sto_rw("d-cos",       "(d (cos x) x)", "(* -1 (sin x))"),
-    sto_rw("d-exp",       "(d (exp x) x)", "(exp x)"),
+    sto_rw_if("d-const",     "(d ?c ?x)",         "0",                          sto_is_const("?c")),
+    sto_rw("d-var",       "(d ?x ?x)", "1"),
+    sto_rw_if("d-pow",       "(d (pow ?x ?n) ?x)", "(* ?n (pow ?x (- ?n 1)))", sto_is_const("?n")),
+    sto_rw_if("d-const-mul", "(d (* ?c ?f) ?x)",   "(* ?c (d ?f ?x))",         sto_is_const("?c")),
+    sto_rw("d-sin",       "(d (sin ?x) ?x)", "(cos ?x)"),
+    sto_rw("d-cos",       "(d (cos ?x) ?x)", "(* -1 (sin ?x))"),
+    sto_rw("d-exp",       "(d (exp ?x) ?x)", "(exp ?x)"),
+    sto_rw("d-ln",        "(d (ln ?x) ?x)", "(/ 1 ?x)"),
 
-    // ── Integration — trigonometric / exponential ────────────────────────────
-    sto_rw("int-sin",     "(int (sin x) x)", "(* -1 (cos x))"),
-    sto_rw("int-cos",     "(int (cos x) x)", "(sin x)"),
-    sto_rw("int-exp",     "(int (exp x) x)", "(exp x)"),
+    // ── Integration — trigonometric / exponential / logarithmic ─────────────
+    sto_rw("int-sin",     "(int (sin ?x) ?x)", "(* -1 (cos ?x))"),
+    sto_rw("int-cos",     "(int (cos ?x) ?x)", "(sin ?x)"),
+    sto_rw("int-exp",     "(int (exp ?x) ?x)", "(exp ?x)"),
+    sto_rw("int-ln",      "(int (ln ?x) ?x)", "(- (* ?x (ln ?x)) ?x)"),
 
     // ── Integration by parts ─────────────────────────────────────────────────
-    sto_rw("ibp", "(int (* ?u ?v) x)",
-        "(- (* ?u (int ?v x)) (int (* (d ?u x) (int ?v x)) x))"),
+    sto_rw("ibp", "(int (* ?u ?v) ?x)",
+        "(- (* ?u (int ?v ?x)) (int (* (d ?u ?x) (int ?v ?x)) ?x))"),
 
     // ── Factoring ────────────────────────────────────────────────────────────
     sto_rw("diff-sq",    "(- (pow ?a 2) (pow ?b 2))", "(* (+ ?a ?b) (- ?a ?b))"),
@@ -720,6 +733,16 @@ fn sto_integ_08() {
     sto_check(
         "(int (* x (cos x)) x)",
         "(+ (* x (sin x)) (cos x))",
+    )
+}
+
+#[test]
+#[serial]
+fn sto_integ_09() {
+    // ∫x³·ln(x) dx = x⁴·ln(x)/4 − x⁴/16
+    sto_check(
+        "(int (* (pow x 3) (ln x)) x)",
+        "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
     )
 }
 

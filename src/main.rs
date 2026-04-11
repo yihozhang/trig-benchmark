@@ -247,244 +247,244 @@ fn check(lhs: &str, rhs: &str) {
 }
 
 #[test]
-fn trig_01() {
+fn eq_trig_01() {
     check("(* (* (sin t) (cos t)) (+ (tan t) (cot t)))", "1")
 }
 #[test]
-fn trig_02() {
+fn eq_trig_02() {
     check(
         "(- (pow (sin t) 4) (pow (cos t) 4))",
         "(- (* 2 (pow (sin t) 2)) 1)",
     )
 }
 #[test]
-fn trig_03() {
+fn eq_trig_03() {
     check(
         "(+ (- (pow (sin t) 4) (pow (cos t) 4)) 1)",
         "(* 2 (pow (sin t) 2))",
     )
 }
 #[test]
-fn trig_04() {
+fn eq_trig_04() {
     check(
         "(- (pow (cos t) 4) (pow (sin t) 4))",
         "(- (* 2 (pow (cos t) 2)) 1)",
     )
 }
 #[test]
-fn trig_05() {
+fn eq_trig_05() {
     check(
         "(* (* (sin a) (cos a)) (- (tan a) (cot a)))",
         "(- (* 2 (pow (sin a) 2)) 1)",
     )
 }
 #[test]
-fn trig_06() {
+fn eq_trig_06() {
     check(
         "(+ (pow (+ (cos A) (sin A)) 2) (pow (- (cos A) (sin A)) 2))",
         "2",
     )
 }
 #[test]
-fn trig_07() {
+fn eq_trig_07() {
     check(
         "(+ (pow (+ 1 (tan t)) 2) (pow (- 1 (tan t)) 2))",
         "(* 2 (pow (sec t) 2))",
     )
 }
 #[test]
-fn trig_08() {
+fn eq_trig_08() {
     check(
         "(+ (/ 1 (+ 1 (cos A))) (/ 1 (- 1 (cos A))))",
         "(* 2 (pow (csc A) 2))",
     )
 }
 #[test]
-fn trig_09() {
+fn eq_trig_09() {
     check(
         "(/ (+ 1 (cos t)) (- 1 (cos t)))",
         "(pow (+ (cot t) (csc t)) 2)",
     )
 }
 #[test]
-fn trig_10() {
+fn eq_trig_10() {
     check(
         "(- (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))",
         "(* 2 (* (tan A) (sec A)))",
     )
 }
 #[test]
-fn trig_11() {
+fn eq_trig_11() {
     check(
         "(+ (/ 1 (- 1 (cos A))) (/ 1 (+ 1 (cos A))))",
         "(* 2 (* (cot A) (csc A)))",
     )
 }
 #[test]
-fn trig_12() {
+fn eq_trig_12() {
     check(
         "(* (+ (+ 1 (sec A)) (tan A)) (+ (- 1 (csc A)) (cot A)))",
         "2",
     )
 }
 #[test]
-fn trig_13() {
+fn eq_trig_13() {
     check(
         "(+ (/ (cos A) (+ 1 (sin A))) (/ (cos A) (- 1 (sin A))))",
         "(* 2 (sec A))",
     )
 }
 #[test]
-fn trig_14() {
+fn eq_trig_14() {
     check(
         "(+ (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))",
         "(* 2 (pow (sec A) 2))",
     )
 }
 #[test]
-fn trig_15() {
+fn eq_trig_15() {
     check(
         "(+ (/ 1 (+ (sin A) (cos A))) (/ 1 (- (sin A) (cos A))))",
         "(/ (* 2 (sin A)) (- 1 (pow (cos A) 2)))",
     )
 }
 #[test]
-fn trig_16() {
+fn eq_trig_16() {
     check(
         "(/ (+ 1 (sin t)) (- 1 (sin t)))",
         "(pow (+ (sec t) (tan t)) 2)",
     )
 }
 // #[test]
-// fn trig_17() {
+// fn eq_trig_17() {
 //     check("(/ (- 1 (sin A)) (cos A))", "(/ (cos A) (+ 1 (sin A)))")
 // }
 #[test]
-fn trig_18() {
+fn eq_trig_18() {
     check(
         "(+ (/ (cos t) (+ 1 (sin t))) (/ (+ 1 (sin t)) (cos t)))",
         "(* 2 (sec t))",
     )
 }
 // #[test]
-// fn trig_19() {
+// fn eq_trig_19() {
 //     check(
 //         "(pow (/ (+ 1 (cos A)) (sin A)) 2)",
 //         "(/ (+ 1 (cos A)) (- 1 (cos A)))",
 //     )
 // }
 #[test]
-fn trig_20() {
+fn eq_trig_20() {
     check(
         "(+ (/ (sin A) (+ 1 (cos A))) (/ (+ 1 (cos A)) (sin A)))",
         "(* 2 (csc A))",
     )
 }
 #[test]
-fn trig_21() {
+fn eq_trig_21() {
     check(
         "(* (* (+ 1 (cos t)) (- 1 (cos t))) (+ 1 (pow (cot t) 2)))",
         "1",
     )
 }
 #[test]
-fn trig_22() {
+fn eq_trig_22() {
     check("(* (* (+ 1 (pow (tan A) 2)) (sin A)) (cos A))", "(tan A)")
 }
 #[test]
-fn trig_23() {
+fn eq_trig_23() {
     check(
         "(/ (- (pow (sin b) 2) (pow (sin a) 2)) (* (pow (sin a) 2) (pow (sin b) 2)))",
         "(+ (pow (cot a) 2) (pow (cot b) 2))",
     )
 }
 // #[test]
-// fn trig_24() {
+// fn eq_trig_24() {
 //     check("(+ (tan A) (cot A))", "(* (sec A) (csc A))")
 // }
 #[test]
-fn trig_25() {
+fn eq_trig_25() {
     check("(/ (csc A) (+ (tan A) (cot A)))", "(cos A)")
 }
 #[test]
-// fn trig_26() {
+// fn eq_trig_26() {
 //     check(
 //         "(+ (pow (sec t) 2) (pow (csc t) 2))",
 //         "(* (pow (sec t) 2) (pow (csc t) 2))",
 //     )
 // }
 #[test]
-fn trig_27() {
+fn eq_trig_27() {
     check(
         "(+ (+ (pow (tan t) 2) (pow (cot t) 2)) 2)",
         "(* (pow (sec t) 2) (pow (csc t) 2))",
     )
 }
 // #[test]
-// fn trig_28() {
+// fn eq_trig_28() {
 //     check(
 //         "(+ (pow (tan t) 4) (pow (tan t) 2))",
 //         "(- (pow (sec t) 4) (pow (sec t) 2))",
 //     )
 // }
 #[test]
-fn trig_29() {
+fn eq_trig_29() {
     check(
         "(+ (- (pow (csc t) 4) (* 2 (pow (csc t) 2))) (- (* 2 (pow (sec t) 2)) (pow (sec t) 4)))",
         "(- (pow (cot t) 4) (pow (tan t) 4))",
     )
 }
 #[test]
-fn trig_30() {
+fn eq_trig_30() {
     check(
         "(/ (- (sin A) (* 2 (pow (sin A) 3))) (- (* 2 (pow (cos A) 3)) (cos A)))",
         "(tan A)",
     )
 }
 #[test]
-fn trig_31() {
+fn eq_trig_31() {
     check(
         "(+ (/ (cos t) (+ (csc t) 1)) (/ (cos t) (- (csc t) 1)))",
         "(* 2 (tan t))",
     )
 }
 #[test]
-fn trig_32() {
+fn eq_trig_32() {
     check(
         "(+ (/ (cos t) (- 1 (tan t))) (/ (sin t) (- 1 (cot t))))",
         "(+ (sin t) (cos t))",
     )
 }
 // #[test]
-// fn trig_33() {
+// fn eq_trig_33() {
 //     check(
 //         "(- (/ 1 (- (sec t) (tan t))) (/ 1 (cos t)))",
 //         "(- (/ 1 (cos t)) (/ 1 (+ (sec t) (tan t))))",
 //     )
 // }
 #[test]
-fn trig_34() {
+fn eq_trig_34() {
     check(
         "(+ (/ (tan t) (+ (sec t) 1)) (/ (tan t) (- (sec t) 1)))",
         "(* 2 (csc t))",
     )
 }
 #[test]
-fn trig_35() {
+fn eq_trig_35() {
     check(
         "(* (- (+ (sec t) (tan t)) 1) (+ (- (sec t) (tan t)) 1))",
         "(* 2 (tan t))",
     )
 }
 #[test]
-fn trig_36() {
+fn eq_trig_36() {
     check(
         "(/ (+ (tan A) (cot B)) (+ (cot A) (tan B)))",
         "(/ (tan A) (tan B))",
     )
 }
 #[test]
-fn trig_37() {
+fn eq_trig_37() {
     // This is pretty tricky and needs to rewrite 1 => (sec x)^2 - (tan x)^2 in the numerator only
     check(
         "(/ (- (+ (tan A) (sec A)) 1) (+ (- (tan A) (sec A)) 1))",
@@ -492,28 +492,28 @@ fn trig_37() {
     )
 }
 #[test]
-fn trig_38() {
+fn eq_trig_38() {
     check(
         "(- (/ (+ 1 (sin a)) (- (csc a) (cot a))) (/ (- 1 (sin a)) (+ (csc a) (cot a))))",
         "(* 2 (+ 1 (cot a)))",
     )
 }
 #[test]
-fn trig_39() {
+fn eq_trig_39() {
     check(
         "(+ (/ 1 (- (+ (cos t) (sin t)) 1)) (/ 1 (+ (+ (cos t) (sin t)) 1)))",
         "(+ (sec t) (csc t))",
     )
 }
 #[test]
-fn trig_40() {
+fn eq_trig_40() {
     check(
         "(+ (/ (tan A) (- 1 (cot A))) (/ (cot A) (- 1 (tan A))))",
         "(+ 1 (* (sec A) (csc A)))",
     )
 }
 #[test]
-fn trig_41() {
+fn eq_trig_41() {
     check(
         "(- (pow (- (sec x) 1) 2) (pow (- (tan x) (sin x)) 2))",
         "(pow (- 1 (cos x)) 2)",
