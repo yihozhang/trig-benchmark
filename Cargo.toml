@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 egg = { path = "../egg" }
-serial_test = "3.4.0"
+
+[[bin]]
+name = "trig"
+path = "src/trig.rs"
+
+[[bin]]
+name = "integ"
+path = "src/integ.rs"

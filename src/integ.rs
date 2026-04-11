@@ -1,3 +1,4 @@
+use clap::Parser;
 use egg::stochastic::{
     PeriodicBeta, SimpleLcg, State, StoAnalysis, StoConditionalApplier, StoConfig, StoRewrite,
     StoRunner,
@@ -7,9 +8,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
-
-#[cfg(test)]
-use serial_test::serial;
 
 type EGraph = egg::EGraph<Integ, ConstantFold>;
 type Rewrite = egg::Rewrite<Integ, ConstantFold>;
@@ -301,113 +299,13 @@ fn has_int_or_d(expr: &RecExpr<Integ>) -> bool {
         .any(|n| matches!(n, Integ::Int(_) | Integ::D(_)))
 }
 
-fn check(lhs: &str, rhs: &str) {
-    let (cost, result, _) = simplify(lhs);
+fn run_eqsat_test(lhs: &str, rhs: &str) -> (usize, String, bool) {
+    let (cost, best, _unsound) = simplify(lhs);
     let rhs_expr: RecExpr<Integ> = rhs.parse().unwrap();
     let expected_cost = IntegCost.cost_rec(&rhs_expr);
-    let best_expr: RecExpr<Integ> = result.parse().unwrap();
-    assert!(
-        !has_int_or_d(&best_expr) && cost <= expected_cost,
-        "expected cost <= {} with no int/d nodes, got cost {} with: {}",
-        expected_cost,
-        cost,
-        result
-    );
-}
-
-// ── Power Rule / Algebraic Manipulation ──────────────────────────────────────
-
-#[test]
-fn eq_integ_01() {
-    // ∫(x²+1)²/x² dx = x³/3 + 2x − 1/x
-    check(
-        "(int (/ (pow (+ (pow x 2) 1) 2) (pow x 2)) x)",
-        "(+ (/ (pow x 3) 3) (- (* 2 x) (/ 1 x)))",
-    )
-}
-
-#[test]
-fn eq_integ_02() {
-    // ∫(√x + 1/√x)² dx = x²/2 + 2x + ln(x)
-    check(
-        "(int (pow (+ (sqrt x) (/ 1 (sqrt x))) 2) x)",
-        "(+ (/ (pow x 2) 2) (+ (* 2 x) (ln x)))",
-    )
-}
-
-#[test]
-fn eq_integ_03() {
-    // ∫(x⁴−1)/(x²+1) dx = x³/3 − x
-    check(
-        "(int (/ (- (pow x 4) 1) (+ (pow x 2) 1)) x)",
-        "(- (/ (pow x 3) 3) x)",
-    )
-}
-
-#[test]
-fn eq_integ_04() {
-    // ∫(x³−1)/(x−1) dx = x³/3 + x²/2 + x
-    check(
-        "(int (/ (- (pow x 3) 1) (- x 1)) x)",
-        "(+ (/ (pow x 3) 3) (+ (/ (pow x 2) 2) x))",
-    )
-}
-
-#[test]
-fn eq_integ_05() {
-    // This requires polynomial division and is probably too hard
-    // ∫(x²+1)/(x−1)² dx = x + 2·ln(x−1) − 2/(x−1)
-    check(
-        "(int (/ (+ (pow x 2) 1) (pow (- x 1) 2)) x)",
-        "(+ x (+ (* 2 (ln (- x 1))) (/ -2 (- x 1))))",
-    )
-}
-
-// ── Integration by Parts ─────────────────────────────────────────────────────
-
-#[test]
-fn eq_integ_06() {
-    // ∫x²·sin(x) dx = −x²cos(x) + 2x·sin(x) + 2cos(x)
-    check(
-        "(int (* (pow x 2) (sin x)) x)",
-        "(+ (* -1 (* (pow x 2) (cos x))) (- (* 2 (* x (sin x))) (* -2 (cos x))))",
-    )
-}
-
-#[test]
-fn eq_integ_07() {
-    // ∫x²·eˣ dx = eˣ(x² − 2x + 2)
-    check(
-        "(int (* (pow x 2) (exp x)) x)",
-        "(* (exp x) (+ (- (pow x 2) (* 2 x)) 2))",
-    )
-}
-
-#[test]
-fn eq_integ_08() {
-    // ∫x·cos(x) dx = x·sin(x) + cos(x)
-    check(
-        "(int (* x (cos x)) x)",
-        "(+ (* x (sin x)) (cos x))",
-    )
-}
-
-#[test]
-fn eq_integ_09() {
-    // ∫x³·ln(x) dx = x⁴·ln(x)/4 − x⁴/16
-    check(
-        "(int (* (pow x 3) (ln x)) x)",
-        "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
-    )
-}
-
-#[test]
-fn eq_integ_10() {
-    // ∫(ln(x))² dx = x·(ln(x))² − 2x·ln(x) + 2x
-    check(
-        "(int (pow (ln x) 2) x)",
-        "(+ (- (* x (pow (ln x) 2)) (* 2 (* x (ln x)))) (* 2 x))",
-    )
+    let best_expr: RecExpr<Integ> = best.parse().unwrap();
+    let is_optimal = !has_int_or_d(&best_expr) && cost <= expected_cost;
+    (cost, best, is_optimal)
 }
 
 // ── Stochastic search ────────────────────────────────────────────────────────
@@ -626,10 +524,7 @@ fn sto_rules() -> Vec<IntegRw> {
     ]
 }
 
-fn sto_simplify(s: &str) -> (f64, RecExpr<Integ>) {
-    let n_threads = std::thread::available_parallelism()
-        .map(|n| n.get() - 1) // NOTE: Leave one thread free so system remains responsive
-        .unwrap_or(1);
+fn sto_simplify(s: &str, n_threads: usize) -> (f64, RecExpr<Integ>) {
     let timeout = Duration::from_secs(10);
     let initial_expr: Arc<RecExpr<Integ>> = Arc::new(s.parse().unwrap());
 
@@ -672,131 +567,202 @@ fn sto_has_int_or_d(expr: &RecExpr<Integ>) -> bool {
         .any(|n| matches!(n, Integ::Int(_) | Integ::D(_)))
 }
 
-fn run_sto_test(lhs: &str, rhs: &str) -> (f64, String, bool) {
-    let (cost, best) = sto_simplify(lhs);
+fn run_sto_test(lhs: &str, rhs: &str, n_threads: usize) -> (f64, String, bool) {
+    let (cost, best) = sto_simplify(lhs, n_threads);
     let rhs_expr: RecExpr<Integ> = rhs.parse().unwrap();
     let expected_cost = IntegCost.cost_rec(&rhs_expr) as f64;
     let is_optimal = !sto_has_int_or_d(&best) && cost <= expected_cost;
     (cost, best.to_string(), is_optimal)
 }
 
-fn sto_check(lhs: &str, rhs: &str) {
-    let (cost, best, is_optimal) = run_sto_test(lhs, rhs);
-    eprintln!("best cost: {}, best expr: {}", cost, best);
-    let rhs_expr: RecExpr<Integ> = rhs.parse().unwrap();
-    let expected_cost = IntegCost.cost_rec(&rhs_expr) as f64;
-    assert!(
-        is_optimal,
-        "expected cost <= {} with no int/d nodes, got cost {} with: {}",
-        expected_cost, cost, best
-    );
-}
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
-// ── Stochastic Power Rule / Algebraic Manipulation ──────────────────────────
+const TESTS: &[(&str, &str)] = &[
+    // ∫(x²+1)²/x² dx
+    ("(int (/ (pow (+ (pow x 2) 1) 2) (pow x 2)) x)", "(+ (/ (pow x 3) 3) (- (* 2 x) (/ 1 x)))"),
+    // ∫(√x + 1/√x)² dx
+    ("(int (pow (+ (sqrt x) (/ 1 (sqrt x))) 2) x)", "(+ (/ (pow x 2) 2) (+ (* 2 x) (ln x)))"),
+    // ∫(x⁴−1)/(x²+1) dx
+    ("(int (/ (- (pow x 4) 1) (+ (pow x 2) 1)) x)", "(- (/ (pow x 3) 3) x)"),
+    // ∫(x³−1)/(x−1) dx
+    ("(int (/ (- (pow x 3) 1) (- x 1)) x)", "(+ (/ (pow x 3) 3) (+ (/ (pow x 2) 2) x))"),
+    // ∫(x²+1)/(x−1)² dx
+    ("(int (/ (+ (pow x 2) 1) (pow (- x 1) 2)) x)", "(+ x (+ (* 2 (ln (- x 1))) (/ -2 (- x 1))))"),
+    // ∫x²·sin(x) dx
+    ("(int (* (pow x 2) (sin x)) x)", "(+ (* -1 (* (pow x 2) (cos x))) (- (* 2 (* x (sin x))) (* -2 (cos x))))"),
+    // ∫x²·eˣ dx
+    ("(int (* (pow x 2) (exp x)) x)", "(* (exp x) (+ (- (pow x 2) (* 2 x)) 2))"),
+    // ∫x·cos(x) dx
+    ("(int (* x (cos x)) x)", "(+ (* x (sin x)) (cos x))"),
+    // ∫x³·ln(x) dx
+    ("(int (* (pow x 3) (ln x)) x)", "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))"),
+    // ∫(ln(x))² dx
+    ("(int (pow (ln x) 2) x)", "(+ (- (* x (pow (ln x) 2)) (* 2 (* x (ln x)))) (* 2 x))"),
+];
 
-#[test]
-#[serial]
-fn sto_integ_01() {
-    // ∫(x²+1)²/x² dx = x³/3 + 2x − 1/x
-    sto_check(
-        "(int (/ (pow (+ (pow x 2) 1) 2) (pow x 2)) x)",
-        "(+ (/ (pow x 3) 3) (- (* 2 x) (/ 1 x)))",
-    )
-}
+/// Integration benchmark.
+///
+/// Specify --eq and/or --sto to select which modes to run.
+/// Optionally pass test indices (0-based) to run a subset.
+/// With no indices, all tests are run for the selected mode(s).
+#[derive(Parser)]
+struct Cli {
+    /// Run EqSat tests
+    #[arg(long)]
+    eq: bool,
 
-#[test]
-#[serial]
-fn sto_integ_02() {
-    // ∫(√x + 1/√x)² dx = x²/2 + 2x + ln(x)
-    sto_check(
-        "(int (pow (+ (sqrt x) (/ 1 (sqrt x))) 2) x)",
-        "(+ (/ (pow x 2) 2) (+ (* 2 x) (ln x)))",
-    )
-}
+    /// Run stochastic tests
+    #[arg(long)]
+    sto: bool,
 
-#[test]
-#[serial]
-fn sto_integ_03() {
-    // ∫(x⁴−1)/(x²+1) dx = x³/3 − x
-    sto_check(
-        "(int (/ (- (pow x 4) 1) (+ (pow x 2) 1)) x)",
-        "(- (/ (pow x 3) 3) x)",
-    )
-}
+    /// Number of threads for stochastic search
+    #[arg(short = 'j')]
+    threads: Option<usize>,
 
-#[test]
-#[serial]
-fn sto_integ_04() {
-    // ∫(x³−1)/(x−1) dx = x³/3 + x²/2 + x
-    sto_check(
-        "(int (/ (- (pow x 3) 1) (- x 1)) x)",
-        "(+ (/ (pow x 3) 3) (+ (/ (pow x 2) 2) x))",
-    )
-}
-
-#[test]
-#[serial]
-fn sto_integ_05() {
-    // This requires polynomial division and is probably too hard
-    // ∫(x²+1)/(x−1)² dx = x + 2·ln(x−1) − 2/(x−1)
-    sto_check(
-        "(int (/ (+ (pow x 2) 1) (pow (- x 1) 2)) x)",
-        "(+ x (+ (* 2 (ln (- x 1))) (/ -2 (- x 1))))",
-    )
-}
-
-// ── Stochastic Integration by Parts ─────────────────────────────────────────
-
-#[test]
-#[serial]
-fn sto_integ_06() {
-    // ∫x²·sin(x) dx = −x²cos(x) + 2x·sin(x) + 2cos(x)
-    sto_check(
-        "(int (* (pow x 2) (sin x)) x)",
-        "(+ (* -1 (* (pow x 2) (cos x))) (- (* 2 (* x (sin x))) (* -2 (cos x))))",
-    )
-}
-
-#[test]
-#[serial]
-fn sto_integ_07() {
-    // ∫x²·eˣ dx = eˣ(x² − 2x + 2)
-    sto_check(
-        "(int (* (pow x 2) (exp x)) x)",
-        "(* (exp x) (+ (- (pow x 2) (* 2 x)) 2))",
-    )
-}
-
-#[test]
-#[serial]
-fn sto_integ_08() {
-    // ∫x·cos(x) dx = x·sin(x) + cos(x)
-    sto_check(
-        "(int (* x (cos x)) x)",
-        "(+ (* x (sin x)) (cos x))",
-    )
-}
-
-#[test]
-#[serial]
-fn sto_integ_09() {
-    // ∫x³·ln(x) dx = x⁴·ln(x)/4 − x⁴/16
-    sto_check(
-        "(int (* (pow x 3) (ln x)) x)",
-        "(- (/ (* (pow x 4) (ln x)) 4) (/ (pow x 4) 16))",
-    )
-}
-
-#[test]
-#[serial]
-fn sto_integ_10() {
-    // ∫(ln(x))² dx = x·(ln(x))² − 2x·ln(x) + 2x
-    sto_check(
-        "(int (pow (ln x) 2) x)",
-        "(+ (- (* x (pow (ln x) 2)) (* 2 (* x (ln x)))) (* 2 x))",
-    )
+    /// Test indices (0-based). If omitted, all tests are run.
+    tests: Vec<usize>,
 }
 
 fn main() {
-    todo!()
+    let cli = Cli::parse();
+
+    if !cli.eq && !cli.sto {
+        eprintln!("error: specify at least one of --eq or --sto");
+        std::process::exit(1);
+    }
+
+    let run_eq = cli.eq;
+    let run_sto = cli.sto;
+
+    let avail = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    // NOTE: By default we leave 2 threads free to maintain system responsiveness while running
+    let n_threads = cli.threads.unwrap_or(avail.saturating_sub(2).max(1));
+    assert!(
+        n_threads <= avail,
+        "-j {n_threads} exceeds available parallelism ({avail})"
+    );
+
+    // Collect (original_index, lhs, rhs) for selected tests
+    let active_tests: Vec<(usize, &str, &str)> = if cli.tests.is_empty() {
+        TESTS.iter().enumerate().map(|(i, (l, r))| (i, *l, *r)).collect()
+    } else {
+        cli.tests
+            .iter()
+            .map(|&idx| {
+                assert!(idx < TESTS.len(), "test index {idx} out of range (0..{})", TESTS.len());
+                (idx, TESTS[idx].0, TESTS[idx].1)
+            })
+            .collect()
+    };
+
+    if active_tests.is_empty() {
+        eprintln!("No tests matched the given filters.");
+        std::process::exit(1);
+    }
+
+    let mut eqsat_passed = 0usize;
+    let mut eqsat_total = 0usize;
+    let mut sto_passed = 0usize;
+    let mut sto_total = 0usize;
+    let mut rows: Vec<String> = Vec::new();
+    if run_eq && run_sto {
+        rows.push(
+            "index,eqsat_cost,eqsat_expr,eqsat_optimal,sto_cost,sto_expr,sto_optimal".to_string(),
+        );
+    } else if run_eq {
+        rows.push("index,eqsat_cost,eqsat_expr,eqsat_optimal".to_string());
+    } else {
+        rows.push("index,sto_cost,sto_expr,sto_optimal".to_string());
+    }
+
+    struct EqResult {
+        cost: usize,
+        expr: String,
+        optimal: bool,
+    }
+    struct StoResult {
+        cost: f64,
+        expr: String,
+        optimal: bool,
+    }
+
+    let mut eq_results: Vec<Option<EqResult>> = (0..active_tests.len()).map(|_| None).collect();
+    let mut sto_results: Vec<Option<StoResult>> = (0..active_tests.len()).map(|_| None).collect();
+
+    // Run eqsat tests serially
+    if run_eq {
+        for (i, &(idx, lhs, rhs)) in active_tests.iter().enumerate() {
+            print!("{idx} eqsat ... ");
+            let (cost, expr, optimal) = run_eqsat_test(lhs, rhs);
+            if optimal {
+                eqsat_passed += 1;
+                println!("ok (cost {cost})");
+            } else {
+                println!("FAIL (cost {cost}, got: {expr})");
+            }
+            eqsat_total += 1;
+            eq_results[i] = Some(EqResult { cost, expr, optimal });
+        }
+    }
+
+    // Run sto tests serially
+    if run_sto {
+        for (i, &(idx, lhs, rhs)) in active_tests.iter().enumerate() {
+            print!("{idx} sto   ... ");
+            let (cost, expr, optimal) = run_sto_test(lhs, rhs, n_threads);
+            if optimal {
+                sto_passed += 1;
+                println!("ok (cost {cost})");
+            } else {
+                println!("FAIL (cost {cost}, got: {expr})");
+            }
+            sto_total += 1;
+            sto_results[i] = Some(StoResult { cost, expr, optimal });
+        }
+    }
+
+    // Build CSV rows
+    for (i, &(idx, _, _)) in active_tests.iter().enumerate() {
+        let eq = &eq_results[i];
+        let sto = &sto_results[i];
+        match (eq, sto) {
+            (Some(e), Some(s)) => {
+                let eq_escaped = e.expr.replace('"', "\"\"");
+                let sto_escaped = s.expr.replace('"', "\"\"");
+                rows.push(format!(
+                    "{idx},{},\"{eq_escaped}\",{},{},\"{sto_escaped}\",{}",
+                    e.cost, e.optimal, s.cost, s.optimal
+                ));
+            }
+            (Some(e), None) => {
+                let eq_escaped = e.expr.replace('"', "\"\"");
+                rows.push(format!(
+                    "{idx},{},\"{eq_escaped}\",{}",
+                    e.cost, e.optimal
+                ));
+            }
+            (None, Some(s)) => {
+                let sto_escaped = s.expr.replace('"', "\"\"");
+                rows.push(format!(
+                    "{idx},{},\"{sto_escaped}\",{}",
+                    s.cost, s.optimal
+                ));
+            }
+            (None, None) => {}
+        }
+    }
+
+    println!();
+    if run_eq {
+        println!("eqsat: {eqsat_passed}/{eqsat_total} passed");
+    }
+    if run_sto {
+        println!("sto:   {sto_passed}/{sto_total} passed");
+    }
+
+    let csv = rows.join("\n");
+    std::fs::write("integ_results.csv", csv).expect("failed to write integ_results.csv");
+    println!("Results saved to integ_results.csv");
 }
