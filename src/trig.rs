@@ -1,6 +1,7 @@
 use clap::Parser;
 use egg::stochastic::{
-    PeriodicBeta, SimpleLcg, State, StoAnalysis, StoConfig, StoRewrite, StoRunner,
+    PeriodicBeta, SimpleLcg, State, StoAnalysis, StoConditionalApplier, StoConfig, StoRewrite,
+    StoRunner,
 };
 use egg::{rewrite as rw, *};
 use std::collections::HashSet;
@@ -92,6 +93,16 @@ impl Analysis<Trig> for ConstantFold {
     }
 }
 
+struct IsNotZero {
+    var: Var,
+}
+
+impl Condition<Trig, ConstantFold> for IsNotZero {
+    fn check(&self, egraph: &mut EGraph, _eclass: Id, subst: &Subst) -> bool {
+        !matches!(&egraph[subst[self.var]].data, Some((0, _)))
+    }
+}
+
 #[rustfmt::skip]
 fn rules(vars: impl Iterator<Item = Symbol>) -> Vec<Rewrite> {
     let mut rwts: Vec<Rewrite> = vec![
@@ -138,7 +149,7 @@ fn rules(vars: impl Iterator<Item = Symbol>) -> Vec<Rewrite> {
     rw!("mul-one";       "?a" => "(* ?a 1)"),
     rw!("zero-mul";      "(* ?a 0)" => "0"),
     rw!("cancel-add";    "(+ ?a (* -1 ?a))" => "0"),
-    rw!("recip-mul";     "(* ?a (/ 1 ?a))" => "1"),
+    rw!("recip-mul";     "(* ?a (/ 1 ?a))" => "1" if IsNotZero { var: "?a".parse().unwrap() }),
     rw!("double-neg";    "(* -1 (* -1 ?a))" => "?a"),
 
     // subtraction and division as sugar
@@ -154,8 +165,8 @@ fn rules(vars: impl Iterator<Item = Symbol>) -> Vec<Rewrite> {
     rw!("frac-mul";      "(* (/ ?a ?b) (/ ?c ?d))" => "(/ (* ?a ?c) (* ?b ?d))"),
     rw!("i-frac-mul";    "(/ (* ?a ?c) (* ?b ?d))" => "(* (/ ?a ?b) (/ ?c ?d))"),
     rw!("recip-frac";    "(/ 1 (/ ?a ?b))" => "(/ ?b ?a)"),
-    rw!("i-recip-frac";  "(/ ?b ?a)" => "(/ 1 (/ ?a ?b))"),
-    rw!("cancel-frac";   "(/ (* ?a ?c) (* ?b ?c))" => "(/ ?a ?b)"),
+    rw!("i-recip-frac";  "(/ ?b ?a)" => "(/ 1 (/ ?a ?b))" if IsNotZero { var: "?b".parse().unwrap() }),
+    rw!("cancel-frac";   "(/ (* ?a ?c) (* ?b ?c))" => "(/ ?a ?b)" if IsNotZero { var: "?c".parse().unwrap() }),
     rw!("split-frac";    "(/ (+ ?a ?c) ?c)" => "(+ (/ ?a ?c) 1)"),
     rw!("i-split-frac";  "(+ (/ ?a ?c) 1)" => "(/ (+ ?a ?c) ?c)"),
 
@@ -285,6 +296,33 @@ fn sto_rw(name: &str, lhs: &str, rhs: &str) -> TrigRw {
     StoRewrite::new(name, p_trig(lhs), p_trig(rhs)).unwrap()
 }
 
+fn sto_rw_if(
+    name: &str,
+    lhs: &str,
+    rhs: &str,
+    cond: impl Fn(&TrigState, Id, &Subst) -> bool + Send + Sync + 'static,
+) -> TrigRw {
+    StoRewrite::new(
+        name,
+        p_trig(lhs),
+        StoConditionalApplier {
+            applier: Arc::new(p_trig(rhs)),
+            condition: Box::new(cond),
+        },
+    )
+    .unwrap()
+}
+
+fn sto_is_not_zero(var: &str) -> impl Fn(&TrigState, Id, &Subst) -> bool + Send + Sync + 'static {
+    let v: Var = var.parse().unwrap();
+    move |s: &TrigState, _: Id, subst: &Subst| {
+        match s.rec_expr[subst[v]] {
+            Trig::Num(n) => n != 0,
+            _ => true,
+        }
+    }
+}
+
 #[rustfmt::skip]
 fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     let mut rwts: Vec<TrigRw> = vec![
@@ -329,7 +367,7 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     sto_rw("mul-one",    "?a",                 "(* ?a 1)"),
     sto_rw("zero-mul",   "(* ?a 0)",           "0"),
     sto_rw("cancel-add", "(+ ?a (* -1 ?a))",   "0"),
-    sto_rw("recip-mul",  "(* ?a (/ 1 ?a))",    "1"),
+    sto_rw_if("recip-mul",  "(* ?a (/ 1 ?a))",    "1", sto_is_not_zero("?a")),
     sto_rw("double-neg", "(* -1 (* -1 ?a))",   "?a"),
 
     // subtraction and division as sugar
@@ -346,8 +384,8 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     sto_rw("frac-mul",           "(* (/ ?a ?b) (/ ?c ?d))", "(/ (* ?a ?c) (* ?b ?d))"),
     sto_rw("i-frac-mul",         "(/ (* ?a ?c) (* ?b ?d))", "(* (/ ?a ?b) (/ ?c ?d))"),
     sto_rw("recip-frac",         "(/ 1 (/ ?a ?b))",         "(/ ?b ?a)"),
-    sto_rw("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))"),
-    sto_rw("cancel-frac",        "(/ (* ?a ?c) (* ?b ?c))", "(/ ?a ?b)"),
+    sto_rw_if("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))", sto_is_not_zero("?b")),
+    sto_rw_if("cancel-frac",        "(/ (* ?a ?c) (* ?b ?c))", "(/ ?a ?b)", sto_is_not_zero("?c")),
     sto_rw("split-frac",         "(/ (+ ?a ?c) ?c)",        "(+ (/ ?a ?c) 1)"),
     sto_rw("i-split-frac",       "(+ (/ ?a ?c) 1)",         "(/ (+ ?a ?c) ?c)"),
 
