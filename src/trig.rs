@@ -8,7 +8,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-
 type EGraph = egg::EGraph<Trig, ConstantFold>;
 type Rewrite = egg::Rewrite<Trig, ConstantFold>;
 
@@ -315,11 +314,9 @@ fn sto_rw_if(
 
 fn sto_is_not_zero(var: &str) -> impl Fn(&TrigState, Id, &Subst) -> bool + Send + Sync + 'static {
     let v: Var = var.parse().unwrap();
-    move |s: &TrigState, _: Id, subst: &Subst| {
-        match s.rec_expr[subst[v]] {
-            Trig::Num(n) => n != 0,
-            _ => true,
-        }
+    move |s: &TrigState, _: Id, subst: &Subst| match s.rec_expr[subst[v]] {
+        Trig::Num(n) => n != 0,
+        _ => true,
     }
 }
 
@@ -367,7 +364,7 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     sto_rw("mul-one",    "?a",                 "(* ?a 1)"),
     sto_rw("zero-mul",   "(* ?a 0)",           "0"),
     sto_rw("cancel-add", "(+ ?a (* -1 ?a))",   "0"),
-    sto_rw_if("recip-mul",  "(* ?a (/ 1 ?a))",    "1", sto_is_not_zero("?a")),
+    sto_rw("recip-mul",  "(* ?a (/ 1 ?a))",    "1"),
     sto_rw("double-neg", "(* -1 (* -1 ?a))",   "?a"),
 
     // subtraction and division as sugar
@@ -384,8 +381,8 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     sto_rw("frac-mul",           "(* (/ ?a ?b) (/ ?c ?d))", "(/ (* ?a ?c) (* ?b ?d))"),
     sto_rw("i-frac-mul",         "(/ (* ?a ?c) (* ?b ?d))", "(* (/ ?a ?b) (/ ?c ?d))"),
     sto_rw("recip-frac",         "(/ 1 (/ ?a ?b))",         "(/ ?b ?a)"),
-    sto_rw_if("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))", sto_is_not_zero("?b")),
-    sto_rw_if("cancel-frac",        "(/ (* ?a ?c) (* ?b ?c))", "(/ ?a ?b)", sto_is_not_zero("?c")),
+    // sto_rw_if("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))", sto_is_not_zero("?b")),
+    sto_rw("cancel-frac",        "(/ (* ?a ?c) (* ?b ?c))", "(/ ?a ?b)"),
     sto_rw("split-frac",         "(/ (+ ?a ?c) ?c)",        "(+ (/ ?a ?c) 1)"),
     sto_rw("i-split-frac",       "(+ (/ ?a ?c) 1)",         "(/ (+ ?a ?c) ?c)"),
 
@@ -425,8 +422,9 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     rwts
 }
 
-fn sto_simplify(s: &str, n_threads: usize) -> (f64, RecExpr<Trig>) {
-    let timeout = Duration::from_secs(10);
+/// Returns `(best_cost, best_expr, total_proposals, total_accepted)`.
+/// The proposal/accepted counts are the sum across all threads.
+fn sto_simplify(s: &str, n_threads: usize, max_time: Duration) -> (f64, RecExpr<Trig>, u64, u64) {
     let initial_expr: Arc<RecExpr<Trig>> = Arc::new(s.parse().unwrap());
     let vars: HashSet<Symbol> = initial_expr
         .as_ref()
@@ -454,7 +452,7 @@ fn sto_simplify(s: &str, n_threads: usize) -> (f64, RecExpr<Trig>) {
                     max_stall: 10_000,
                     max_restart: usize::MAX,
                     max_iter: usize::MAX,
-                    max_time: timeout,
+                    max_time,
                     beta_schedule: Box::new(PeriodicBeta {
                         random_walk_steps: 20,
                         beta: 1.0,
@@ -462,16 +460,24 @@ fn sto_simplify(s: &str, n_threads: usize) -> (f64, RecExpr<Trig>) {
                     }),
                 };
                 runner.run(config, &mut rng);
-                (runner.best_cost, runner.best_expr.clone())
+                (
+                    runner.best_cost,
+                    runner.best_expr.clone(),
+                    runner.n_proposed,
+                    runner.n_accepted,
+                )
             })
         })
         .collect();
 
     let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
-    results
+    let total_proposed: u64 = results.iter().map(|r| r.2).sum();
+    let total_accepted: u64 = results.iter().map(|r| r.3).sum();
+    let (best_cost, best_expr, _, _) = results
         .into_iter()
         .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-        .unwrap()
+        .unwrap();
+    (best_cost, best_expr, total_proposed, total_accepted)
 }
 
 /// Run stochastic search and return `(cost, best_expr_string, is_optimal)`.
@@ -483,16 +489,22 @@ fn run_eqsat_test(lhs: &str, rhs: &str) -> (usize, String, bool) {
     (cost, best, is_optimal)
 }
 
-fn run_sto_test(lhs: &str, rhs: &str, n_threads: usize) -> (f64, String, bool) {
-    let (cost, best) = sto_simplify(lhs, n_threads);
+fn run_sto_test(
+    lhs: &str,
+    rhs: &str,
+    n_threads: usize,
+    max_time: Duration,
+) -> (f64, String, bool, u64, u64) {
+    let (cost, best, n_proposed, n_accepted) = sto_simplify(lhs, n_threads, max_time);
     let rhs_expr: RecExpr<Trig> = rhs.parse().unwrap();
     let expected_cost = AstSize.cost_rec(&rhs_expr) as f64;
     let is_optimal = cost <= expected_cost;
-    (cost, best.to_string(), is_optimal)
+    (cost, best.to_string(), is_optimal, n_proposed, n_accepted)
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+#[rustfmt::skip]
 const TESTS: &[(&str, &str)] = &[
     ("(* (* (sin t) (cos t)) (+ (tan t) (cot t)))", "1"),
     ("(- (pow (sin t) 4) (pow (cos t) 4))", "(- (* 2 (pow (sin t) 2)) 1)"),
@@ -542,9 +554,20 @@ struct Cli {
     #[arg(long)]
     sto: bool,
 
-    /// Number of threads for stochastic search
-    #[arg(short = 'j')]
-    threads: Option<usize>,
+    /// Number of threads (cores) for stochastic search.
+    /// Defaults to (available_parallelism - 2), minimum 1.
+    #[arg(long, short = 'j', alias = "threads")]
+    nproc: Option<usize>,
+
+    /// Time limit in seconds for each benchmark problem
+    #[arg(long, default_value_t = 10)]
+    max_time: u64,
+
+    /// Output CSV file path (default: trig_results.csv).
+    /// When --sto is used the CSV matches the Lisp format:
+    ///   name,time,solved,cost,#proposals,#accepted
+    #[arg(long, short = 'o', default_value = "trig_results.csv")]
+    output: String,
 
     /// Test indices (0-based). If omitted, all tests are run.
     tests: Vec<usize>,
@@ -564,21 +587,27 @@ fn main() {
     let avail = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(1);
-    // NOTE: By default we leave 2 threads free to maintain system responsiveness while running
-    let n_threads = cli.threads.unwrap_or(avail.saturating_sub(2).max(1));
-    assert!(
-        n_threads <= avail,
-        "--threads {n_threads} exceeds available parallelism ({avail})"
-    );
+    let n_threads = cli.nproc.unwrap_or(avail.saturating_sub(2).max(1));
+    assert!(n_threads >= 1, "--nproc must be at least 1");
+
+    let max_time = Duration::from_secs(cli.max_time);
 
     // Collect (original_index, lhs, rhs) for selected tests
     let active_tests: Vec<(usize, &str, &str)> = if cli.tests.is_empty() {
-        TESTS.iter().enumerate().map(|(i, (l, r))| (i, *l, *r)).collect()
+        TESTS
+            .iter()
+            .enumerate()
+            .map(|(i, (l, r))| (i, *l, *r))
+            .collect()
     } else {
         cli.tests
             .iter()
             .map(|&idx| {
-                assert!(idx < TESTS.len(), "test index {idx} out of range (0..{})", TESTS.len());
+                assert!(
+                    idx < TESTS.len(),
+                    "test index {idx} out of range (0..{})",
+                    TESTS.len()
+                );
                 (idx, TESTS[idx].0, TESTS[idx].1)
             })
             .collect()
@@ -593,16 +622,6 @@ fn main() {
     let mut eqsat_total = 0usize;
     let mut sto_passed = 0usize;
     let mut sto_total = 0usize;
-    let mut rows: Vec<String> = Vec::new();
-    if run_eq && run_sto {
-        rows.push(
-            "index,eqsat_cost,eqsat_expr,eqsat_optimal,sto_cost,sto_expr,sto_optimal".to_string(),
-        );
-    } else if run_eq {
-        rows.push("index,eqsat_cost,eqsat_expr,eqsat_optimal".to_string());
-    } else {
-        rows.push("index,sto_cost,sto_expr,sto_optimal".to_string());
-    }
 
     struct EqResult {
         cost: usize,
@@ -610,9 +629,12 @@ fn main() {
         optimal: bool,
     }
     struct StoResult {
+        time_secs: f64,
         cost: f64,
         expr: String,
         optimal: bool,
+        n_proposed: u64,
+        n_accepted: u64,
     }
 
     let mut eq_results: Vec<Option<EqResult>> = (0..active_tests.len()).map(|_| None).collect();
@@ -630,7 +652,11 @@ fn main() {
                 println!("FAIL (cost {cost}, got: {expr})");
             }
             eqsat_total += 1;
-            eq_results[i] = Some(EqResult { cost, expr, optimal });
+            eq_results[i] = Some(EqResult {
+                cost,
+                expr,
+                optimal,
+            });
         }
     }
 
@@ -638,7 +664,10 @@ fn main() {
     if run_sto {
         for (i, &(idx, lhs, rhs)) in active_tests.iter().enumerate() {
             print!("{idx} sto   ... ");
-            let (cost, expr, optimal) = run_sto_test(lhs, rhs, n_threads);
+            let t0 = std::time::Instant::now();
+            let (cost, expr, optimal, n_proposed, n_accepted) =
+                run_sto_test(lhs, rhs, n_threads, max_time);
+            let elapsed = t0.elapsed().as_secs_f64();
             if optimal {
                 sto_passed += 1;
                 println!("ok (cost {cost})");
@@ -646,38 +675,14 @@ fn main() {
                 println!("FAIL (cost {cost}, got: {expr})");
             }
             sto_total += 1;
-            sto_results[i] = Some(StoResult { cost, expr, optimal });
-        }
-    }
-
-    // Build CSV rows
-    for (i, &(idx, _, _)) in active_tests.iter().enumerate() {
-        let eq = &eq_results[i];
-        let sto = &sto_results[i];
-        match (eq, sto) {
-            (Some(e), Some(s)) => {
-                let eq_escaped = e.expr.replace('"', "\"\"");
-                let sto_escaped = s.expr.replace('"', "\"\"");
-                rows.push(format!(
-                    "{idx},{},\"{eq_escaped}\",{},{},\"{sto_escaped}\",{}",
-                    e.cost, e.optimal, s.cost, s.optimal
-                ));
-            }
-            (Some(e), None) => {
-                let eq_escaped = e.expr.replace('"', "\"\"");
-                rows.push(format!(
-                    "{idx},{},\"{eq_escaped}\",{}",
-                    e.cost, e.optimal
-                ));
-            }
-            (None, Some(s)) => {
-                let sto_escaped = s.expr.replace('"', "\"\"");
-                rows.push(format!(
-                    "{idx},{},\"{sto_escaped}\",{}",
-                    s.cost, s.optimal
-                ));
-            }
-            (None, None) => {}
+            sto_results[i] = Some(StoResult {
+                time_secs: elapsed,
+                cost,
+                expr,
+                optimal,
+                n_proposed,
+                n_accepted,
+            });
         }
     }
 
@@ -689,7 +694,68 @@ fn main() {
         println!("sto:   {sto_passed}/{sto_total} passed");
     }
 
-    let csv = rows.join("\n");
-    std::fs::write("trig_results.csv", csv).expect("failed to write trig_results.csv");
-    println!("Results saved to trig_results.csv");
+    // Build CSV
+    // When --sto is the only mode, emit the Lisp-compatible format:
+    //   name,time,solved,cost,#proposals,#accepted
+    // Otherwise fall back to the combined/eqsat-only format.
+    let csv = if run_sto && !run_eq {
+        let mut rows = vec!["name,time,solved,cost,#proposals,#accepted".to_string()];
+        for (i, &(idx, _, _)) in active_tests.iter().enumerate() {
+            if let Some(s) = &sto_results[i] {
+                rows.push(format!(
+                    "trig-{},{:.3},{},{},{},{}",
+                    idx + 1,
+                    s.time_secs,
+                    if s.optimal { "yes" } else { "no" },
+                    s.cost,
+                    s.n_proposed,
+                    s.n_accepted,
+                ));
+            }
+        }
+        rows.join("\n")
+    } else {
+        // Combined or eqsat-only: legacy format
+        let mut rows: Vec<String> = Vec::new();
+        if run_eq && run_sto {
+            rows.push(
+                "index,eqsat_cost,eqsat_expr,eqsat_optimal,sto_cost,sto_expr,sto_optimal,#proposals,#accepted"
+                    .to_string(),
+            );
+        } else if run_eq {
+            rows.push("index,eqsat_cost,eqsat_expr,eqsat_optimal".to_string());
+        } else {
+            rows.push("index,sto_cost,sto_expr,sto_optimal,#proposals,#accepted".to_string());
+        }
+        for (i, &(idx, _, _)) in active_tests.iter().enumerate() {
+            let eq = &eq_results[i];
+            let sto = &sto_results[i];
+            match (eq, sto) {
+                (Some(e), Some(s)) => {
+                    let eq_escaped = e.expr.replace('"', "\"\"");
+                    let sto_escaped = s.expr.replace('"', "\"\"");
+                    rows.push(format!(
+                        "{idx},{},\"{eq_escaped}\",{},{},\"{sto_escaped}\",{},{},{}",
+                        e.cost, e.optimal, s.cost, s.optimal, s.n_proposed, s.n_accepted,
+                    ));
+                }
+                (Some(e), None) => {
+                    let eq_escaped = e.expr.replace('"', "\"\"");
+                    rows.push(format!("{idx},{},\"{eq_escaped}\",{}", e.cost, e.optimal));
+                }
+                (None, Some(s)) => {
+                    let sto_escaped = s.expr.replace('"', "\"\"");
+                    rows.push(format!(
+                        "{idx},{},\"{sto_escaped}\",{},{},{}",
+                        s.cost, s.optimal, s.n_proposed, s.n_accepted,
+                    ));
+                }
+                (None, None) => {}
+            }
+        }
+        rows.join("\n")
+    };
+
+    std::fs::write(&cli.output, csv).expect("failed to write output CSV");
+    println!("Results saved to {}", cli.output);
 }
