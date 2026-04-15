@@ -1,11 +1,13 @@
 use clap::Parser;
+use core::f64;
 use egg::stochastic::{
-    PeriodicBeta, SimpleLcg, State, StoAnalysis, StoConditionalApplier, StoConfig, StoRewrite,
-    StoRunner,
+    IterHookAction, PeriodicBeta, SimpleLcg, State, StoAnalysis, StoConditionalApplier, StoConfig,
+    StoRewrite, StoRunner, StoSearcher,
 };
 use egg::{rewrite as rw, *};
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 type EGraph = egg::EGraph<Trig, ConstantFold>;
@@ -196,11 +198,11 @@ fn rules(vars: impl Iterator<Item = Symbol>) -> Vec<Rewrite> {
     // Adding this rule passes 16 but fails a bunch of other tests...
     // rw!("rationalize"; "(/ ?a (- ?b ?c))" => "(/ (* ?a (+ ?b ?c)) (- (pow ?b 2) (pow ?c 2)))")
     ];
-    for var in vars {
-        let name = format!("i-pythag-{}", var);
-        let rhs = format!("(+ (pow (sin {}) 2) (pow (cos {}) 2))", var, var);
-        rwts.push(Rewrite::new(name, "1".parse::<Pattern<Trig>>().unwrap(), rhs.parse::<Pattern<Trig>>().unwrap()).unwrap());
-    }
+    // for var in vars {
+    //     let name = format!("i-pythag-{}", var);
+    //     let rhs = format!("(+ (pow (sin {}) 2) (pow (cos {}) 2))", var, var);
+    //     rwts.push(Rewrite::new(name, "1".parse::<Pattern<Trig>>().unwrap(), rhs.parse::<Pattern<Trig>>().unwrap()).unwrap());
+    // }
     rwts
 }
 
@@ -381,7 +383,7 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
     sto_rw("frac-mul",           "(* (/ ?a ?b) (/ ?c ?d))", "(/ (* ?a ?c) (* ?b ?d))"),
     sto_rw("i-frac-mul",         "(/ (* ?a ?c) (* ?b ?d))", "(* (/ ?a ?b) (/ ?c ?d))"),
     sto_rw("recip-frac",         "(/ 1 (/ ?a ?b))",         "(/ ?b ?a)"),
-    // sto_rw_if("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))", sto_is_not_zero("?b")),
+    sto_rw_if("i-recip-frac",       "(/ ?b ?a)",               "(/ 1 (/ ?a ?b))", sto_is_not_zero("?b")),
     sto_rw("cancel-frac",        "(/ (* ?a ?c) (* ?b ?c))", "(/ ?a ?b)"),
     sto_rw("split-frac",         "(/ (+ ?a ?c) ?c)",        "(+ (/ ?a ?c) 1)"),
     sto_rw("i-split-frac",       "(+ (/ ?a ?c) 1)",         "(/ (+ ?a ?c) ?c)"),
@@ -414,17 +416,22 @@ fn sto_rules(vars: impl Iterator<Item = Symbol>) -> Vec<TrigRw> {
         "(* (- ?a ?b) (+ (+ (pow ?a 2) (* ?a ?b)) (pow ?b 2)))",
         "(- (pow ?a 3) (pow ?b 3))"),
     ];
-    for var in vars {
-        let name = format!("i-pythag-{}", var);
-        let rhs = format!("(+ (pow (sin {}) 2) (pow (cos {}) 2))", var, var);
-        rwts.push(sto_rw(&name, "1", &rhs));
-    }
+    // for var in vars {
+    //     let name = format!("i-pythag-{}", var);
+    //     let rhs = format!("(+ (pow (sin {}) 2) (pow (cos {}) 2))", var, var);
+    //     rwts.push(sto_rw(&name, "1", &rhs));
+    // }
     rwts
 }
 
 /// Returns `(best_cost, best_expr, total_proposals, total_accepted)`.
 /// The proposal/accepted counts are the sum across all threads.
-fn sto_simplify(s: &str, n_threads: usize, max_time: Duration) -> (f64, RecExpr<Trig>, u64, u64) {
+fn sto_simplify(
+    s: &str,
+    n_threads: usize,
+    max_time: Duration,
+    target_cost: Option<f64>,
+) -> (f64, RecExpr<Trig>, u64, u64) {
     let initial_expr: Arc<RecExpr<Trig>> = Arc::new(s.parse().unwrap());
     let vars: HashSet<Symbol> = initial_expr
         .as_ref()
@@ -438,15 +445,37 @@ fn sto_simplify(s: &str, n_threads: usize, max_time: Duration) -> (f64, RecExpr<
         })
         .collect();
 
+    let should_abort = Arc::new(AtomicBool::new(false));
     let handles: Vec<_> = (0..n_threads)
         .map(|i| {
             let initial_expr = Arc::clone(&initial_expr);
+            let should_abort = should_abort.clone();
             let vars = vars.clone();
-            let seed = 42u64 + i as u64;
+            let seed = 0u64 + i as u64;
             std::thread::spawn(move || {
                 let mut runner =
                     StoRunner::new((*initial_expr).clone(), sto_rules(vars.into_iter()))
                         .with_normalizer(normalize_trig);
+                let bad_pattern = "(/ ?x 0)".parse::<Pattern<Trig>>().unwrap();
+                let mut best_cost = f64::INFINITY;
+                if let Some(target) = target_cost {
+                    runner = runner.with_iter_hook(move |r| {
+                        if r.best_cost < best_cost {
+                            best_cost = r.best_cost;
+                            if bad_pattern.search_pos(&r.state, r.current_root).is_some() {
+                                return IterHookAction::Restart;
+                            }
+                        }
+                        if r.best_cost <= target {
+                            should_abort.store(true, Ordering::Relaxed);
+                            IterHookAction::Abort
+                        } else if should_abort.load(Ordering::Relaxed) {
+                            IterHookAction::Abort
+                        } else {
+                            IterHookAction::Continue
+                        }
+                    });
+                }
                 let mut rng = SimpleLcg::new(seed);
                 let config = StoConfig {
                     max_stall: 10_000,
@@ -495,9 +524,10 @@ fn run_sto_test(
     n_threads: usize,
     max_time: Duration,
 ) -> (f64, String, bool, u64, u64) {
-    let (cost, best, n_proposed, n_accepted) = sto_simplify(lhs, n_threads, max_time);
     let rhs_expr: RecExpr<Trig> = rhs.parse().unwrap();
     let expected_cost = AstSize.cost_rec(&rhs_expr) as f64;
+    let (cost, best, n_proposed, n_accepted) =
+        sto_simplify(lhs, n_threads, max_time, Some(expected_cost));
     let is_optimal = cost <= expected_cost;
     (cost, best.to_string(), is_optimal, n_proposed, n_accepted)
 }
@@ -699,17 +729,18 @@ fn main() {
     //   name,time,solved,cost,#proposals,#accepted
     // Otherwise fall back to the combined/eqsat-only format.
     let csv = if run_sto && !run_eq {
-        let mut rows = vec!["name,time,solved,cost,#proposals,#accepted".to_string()];
+        let mut rows = vec!["name,time,solved,cost,#proposals,#accepted,expr".to_string()];
         for (i, &(idx, _, _)) in active_tests.iter().enumerate() {
             if let Some(s) = &sto_results[i] {
                 rows.push(format!(
-                    "trig-{},{:.3},{},{},{},{}",
+                    "trig-{},{:.3},{},{},{},{},\"{}\"",
                     idx + 1,
                     s.time_secs,
                     if s.optimal { "yes" } else { "no" },
                     s.cost,
                     s.n_proposed,
                     s.n_accepted,
+                    s.expr.replace('"', "\"\"")
                 ));
             }
         }
