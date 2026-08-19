@@ -1,35 +1,3 @@
-(* (* (sin t) (cos t)) (+ (tan t) (cot t)))	1
-(- (pow (sin t) 4) (pow (cos t) 4))	(- (* 2 (pow (sin t) 2)) 1)
-(+ (- (pow (sin t) 4) (pow (cos t) 4)) 1)	(* 2 (pow (sin t) 2))
-(- (pow (cos t) 4) (pow (sin t) 4))	(- (* 2 (pow (cos t) 2)) 1)
-(* (* (sin a) (cos a)) (- (tan a) (cot a)))	(- (* 2 (pow (sin a) 2)) 1)
-(+ (pow (+ (cos A) (sin A)) 2) (pow (- (cos A) (sin A)) 2))	2
-(+ (pow (+ 1 (tan t)) 2) (pow (- 1 (tan t)) 2))	(* 2 (pow (sec t) 2))
-(+ (/ 1 (+ 1 (cos A))) (/ 1 (- 1 (cos A))))	(* 2 (pow (csc A) 2))
-(/ (+ 1 (cos t)) (- 1 (cos t)))	(pow (+ (cot t) (csc t)) 2)
-(- (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))	(* 2 (* (tan A) (sec A)))
-(* (+ (+ 1 (sec A)) (tan A)) (+ (- 1 (csc A)) (cot A)))	2
-(+ (/ (cos A) (+ 1 (sin A))) (/ (cos A) (- 1 (sin A))))	(* 2 (sec A))
-(+ (/ 1 (- 1 (sin A))) (/ 1 (+ 1 (sin A))))	(* 2 (pow (sec A) 2))
-(/ (+ 1 (sin t)) (- 1 (sin t)))	(pow (+ (sec t) (tan t)) 2)
-(+ (/ (cos t) (+ 1 (sin t))) (/ (+ 1 (sin t)) (cos t)))	(* 2 (sec t))
-(+ (/ (sin A) (+ 1 (cos A))) (/ (+ 1 (cos A)) (sin A)))	(* 2 (csc A))
-(* (* (+ 1 (cos t)) (- 1 (cos t))) (+ 1 (pow (cot t) 2)))	1
-(* (* (+ 1 (pow (tan A) 2)) (sin A)) (cos A))	(tan A)
-(/ (csc A) (+ (tan A) (cot A)))	(cos A)
-(+ (+ (pow (tan t) 2) (pow (cot t) 2)) 2)	(* (pow (sec t) 2) (pow (csc t) 2))
-(+ (- (pow (csc t) 4) (* 2 (pow (csc t) 2))) (- (* 2 (pow (sec t) 2)) (pow (sec t) 4)))	(- (pow (cot t) 4) (pow (tan t) 4))
-(/ (- (sin A) (* 2 (pow (sin A) 3))) (- (* 2 (pow (cos A) 3)) (cos A)))	(tan A)
-(+ (/ (cos t) (+ (csc t) 1)) (/ (cos t) (- (csc t) 1)))	(* 2 (tan t))
-(+ (/ (cos t) (- 1 (tan t))) (/ (sin t) (- 1 (cot t))))	(+ (sin t) (cos t))
-(+ (/ (tan t) (+ (sec t) 1)) (/ (tan t) (- (sec t) 1)))	(* 2 (csc t))
-(* (- (+ (sec t) (tan t)) 1) (+ (- (sec t) (tan t)) 1))	(* 2 (tan t))
-(/ (+ (tan A) (cot B)) (+ (cot A) (tan B)))	(/ (tan A) (tan B))
-(/ (- (+ (tan A) (sec A)) 1) (+ (- (tan A) (sec A)) 1))	(/ (+ 1 (sin A)) (cos A))
-(- (/ (+ 1 (sin a)) (- (csc a) (cot a))) (/ (- 1 (sin a)) (+ (csc a) (cot a))))	(* 2 (+ 1 (cot a)))
-(+ (/ 1 (- (+ (cos t) (sin t)) 1)) (/ 1 (+ (+ (cos t) (sin t)) 1)))	(+ (sec t) (csc t))
-(+ (/ (tan A) (- 1 (cot A))) (/ (cot A) (- 1 (tan A))))	(+ 1 (* (sec A) (csc A)))
-(- (pow (- (sec x) 1) 2) (pow (- (tan x) (sin x)) 2))	(pow (- 1 (cos x)) 2)
 (/ (* (sin x) (sec x)) (tan x))	1
 (* (- 1 (pow (cos x) 2)) (+ 1 (pow (cot x) 2)))	1
 (- (/ (cos x) (- 1 (sin x))) (tan x))	(sec x)
@@ -109,8 +77,6 @@
 (/ (pow (cos x) 2) (- 1 (sin x)))	(+ 1 (sin x))
 (/ (- 1 (pow (cos x) 2)) (sin x))	(sin x)
 (* (sec x) (sin x))	(tan x)
-(* (csc x) (cos x))	(cot x)
-(* (tan x) (* (csc x) (cos x)))	1
 (* (+ (tan x) (cot x)) (* (sin x) (cos x)))	1
 (+ (* (tan x) (sin x)) (cos x))	(sec x)
 (+ (* (cot x) (cos x)) (sin x))	(csc x)
@@ -143,7 +109,6 @@
 (- (sin (+ a b)) (sin (- a b)))	(* 2 (* (cos a) (sin b)))
 (* (pow (csc x) 2) (- 1 (pow (cos x) 2)))	1
 (/ (* (+ (sec x) 1) (- (sec x) 1)) (pow (tan x) 2))	1
-(* (sin A) (* (cot A) (sec A)))	1
 (- (pow (sec t) 2) (pow (tan t) 2))	1
 (- (pow (csc t) 2) (pow (cot t) 2))	1
 (/ (- (pow (sec x) 2) 1) (pow (sec x) 2))	(pow (sin x) 2)
@@ -235,7 +200,6 @@
 (+ (* (sin (/ pi 3)) (cos x)) (* (cos (/ pi 3)) (sin x)))	(sin (+ x (/ pi 3)))
 (+ (* (cos t) (cos (/ pi 4))) (* (sin t) (sin (/ pi 4))))	(cos (- t (/ pi 4)))
 (- (* (sin a) (sin b)) (* (cos a) (cos b)))	(* -1 (cos (+ a b)))
-(- (* (cos a) (sin b)) (* (sin a) (cos b)))	(sin (- b a))
 (/ (- (* (cot a) (cot b)) 1) (+ (cot b) (cot a)))	(cot (+ a b))
 (/ (+ (* (cot a) (cot b)) 1) (- (cot b) (cot a)))	(cot (- a b))
 (+ (* (sin x) (cos (* 2 x))) (* (cos x) (sin (* 2 x))))	(sin (* 3 x))
@@ -268,7 +232,6 @@
 (- (* (cos (* 2 x)) (cos x)) (* (sin (* 2 x)) (sin x)))	(cos (* 3 x))
 (/ (- 1 (cos (* 2 x))) (sin (* 2 x)))	(tan x)
 (/ (sin (* 2 x)) (+ 1 (cos (* 2 x))))	(tan x)
-(* (* 2 (sin x)) (cos x))	(sin (* 2 x))
 (pow (- (sin A) (cos A)) 2)	(- 1 (sin (* 2 A)))
 (* (* 2 (sin (* 2 x))) (cos (* 2 x)))	(sin (* 4 x))
 (- (pow (cos (* 2 x)) 2) (pow (sin (* 2 x)) 2))	(cos (* 4 x))
@@ -318,7 +281,6 @@
 (/ (- (cos x) (cos (* 3 x))) (+ (sin (* 3 x)) (sin x)))	(tan x)
 (/ (- (cos x) (cos (* 3 x))) (- (sin (* 3 x)) (sin x)))	(tan (* 2 x))
 (+ (* (cos (* 3 x)) (cos x)) (* (sin (* 3 x)) (sin x)))	(cos (* 2 x))
-(+ (* (sin (* 2 x)) (cos x)) (* (cos (* 2 x)) (sin x)))	(sin (* 3 x))
 (/ (sin (* 2 t)) (pow (cos t) 2))	(* 2 (tan t))
 (* (sec x) (sin (* 2 x)))	(* 2 (sin x))
 (* (csc x) (sin (* 2 x)))	(* 2 (cos x))
@@ -385,10 +347,8 @@
 (* (* (sec x) (- 1 (sin x))) (+ (sec x) (tan x)))	1
 (- 1 (* 2 (* (pow (sin x) 2) (pow (cos x) 2))))	(+ (pow (sin x) 4) (pow (cos x) 4))
 (- 1 (* 3 (* (pow (sin x) 2) (pow (cos x) 2))))	(+ (pow (sin x) 6) (pow (cos x) 6))
-(+ (/ (cos x) (sin x)) (/ (sin x) (cos x)))	(* (sec x) (csc x))
 (/ (pow (sin x) 2) (cos x))	(- (sec x) (cos x))
 (/ (pow (cos x) 2) (sin x))	(- (csc x) (sin x))
-(+ (/ 1 (- (sec x) (tan x))) (/ 1 (+ (sec x) (tan x))))	(* 2 (sec x))
 (/ (* (+ 1 (pow (cot x) 2)) (tan x)) (pow (sec x) 2))	(cot x)
 (* (- (pow (sec x) 2) 1) (- (pow (csc x) 2) 1))	1
 (- (* (pow (sin x) 2) (pow (sec x) 2)) (pow (sin x) 2))	(* (pow (tan x) 2) (pow (sin x) 2))
@@ -398,8 +358,6 @@
 (* (pow (sec x) 2) (pow (csc x) 2))	(pow (+ (tan x) (cot x)) 2)
 (+ (* (pow (sin x) 2) (pow (cot x) 2)) (* (pow (cos x) 2) (pow (tan x) 2)))	1
 (* (- 1 (pow (sin x) 2)) (pow (sec x) 2))	1
-(* (- 1 (pow (cos x) 2)) (pow (csc x) 2))	1
-(* (cot x) (sin x))	(cos x)
 (/ (- 1 (sin x)) (+ 1 (sin x)))	(pow (- (sec x) (tan x)) 2)
 (/ (cos x) (- 1 (sin x)))	(+ (sec x) (tan x))
 (/ (pow (tan x) 2) (+ 1 (pow (tan x) 2)))	(pow (sin x) 2)
@@ -418,7 +376,6 @@
 (* 2 (* (cos (/ (+ a b) 2)) (sin (/ (- a b) 2))))	(- (sin a) (sin b))
 (* 2 (* (cos (/ (+ a b) 2)) (cos (/ (- a b) 2))))	(+ (cos a) (cos b))
 (* -1 (* 2 (* (sin (/ (+ a b) 2)) (sin (/ (- a b) 2)))))	(- (cos a) (cos b))
-(/ (+ (sin x) (sin (* 3 x))) (+ (cos x) (cos (* 3 x))))	(tan (* 2 x))
 (/ (+ (sin (* 5 x)) (sin (* 3 x))) (+ (cos (* 5 x)) (cos (* 3 x))))	(tan (* 4 x))
 (- 1 (* 8 (* (pow (sin x) 2) (pow (cos x) 2))))	(cos (* 4 x))
 (- (pow (sin (+ a b)) 2) (pow (sin (- a b)) 2))	(* (sin (* 2 a)) (sin (* 2 b)))
@@ -455,20 +412,15 @@
 (+ (sin x) (+ (sin (+ x (/ (* 2 pi) 3))) (sin (+ x (/ (* 4 pi) 3)))))	0
 (+ (cos x) (+ (cos (+ x (/ (* 2 pi) 3))) (cos (+ x (/ (* 4 pi) 3)))))	0
 (- (pow (cos (- x y)) 2) (pow (sin (+ x y)) 2))	(* (cos (* 2 x)) (cos (* 2 y)))
-(* 4 (* (sin x) (* (sin (- (/ pi 3) x)) (sin (+ (/ pi 3) x)))))	(sin (* 3 x))
-(* 4 (* (cos x) (* (cos (- (/ pi 3) x)) (cos (+ (/ pi 3) x)))))	(cos (* 3 x))
 (/ (+ (sin a) (sin b)) (+ (cos a) (cos b)))	(tan (/ (+ a b) 2))
 (/ (- (sin a) (sin b)) (+ (cos a) (cos b)))	(tan (/ (- a b) 2))
 (/ (- (sin a) (sin b)) (- (cos a) (cos b)))	(* -1 (cot (/ (+ a b) 2)))
 (/ (- (tan (* 3 x)) (+ (tan (* 2 x)) (tan x))) (* (tan (* 2 x)) (tan x)))	(tan (* 3 x))
-(/ (- (* (cot x) (cot y)) 1) (+ (cot x) (cot y)))	(cot (+ x y))
 (- (* 2 (+ (pow (sin x) 6) (pow (cos x) 6))) (* 3 (+ (pow (sin x) 4) (pow (cos x) 4))))	-1
 (+ (pow (sin x) 2) (+ (pow (sin (+ x (/ pi 3))) 2) (pow (sin (- x (/ pi 3))) 2)))	1.5
 (+ (pow (cos x) 2) (+ (pow (cos (+ x (/ (* 2 pi) 3))) 2) (pow (cos (- x (/ (* 2 pi) 3))) 2)))	1.5
 (/ (+ (sin (* 4 x)) (sin (* 2 x))) (+ (cos (* 4 x)) (cos (* 2 x))))	(tan (* 3 x))
 (/ (+ (sin x) (+ (sin (* 2 x)) (sin (* 3 x)))) (+ (cos x) (+ (cos (* 2 x)) (cos (* 3 x)))))	(tan (* 2 x))
-(* (- (csc x) (cot x)) (+ (csc x) (cot x)))	1
-(+ (pow (tan x) 2) 1)	(pow (sec x) 2)
 (+ 1 (* (tan x) (tan (/ x 2))))	(sec x)
 (/ (tan x) (+ 1 (pow (tan x) 2)))	(/ (sin (* 2 x)) 2)
 (- (cot x) (cot (* 2 x)))	(csc (* 2 x))
@@ -480,7 +432,6 @@
 (/ (+ (sin (* 3 x)) (sin x)) (* 2 (sin (* 2 x))))	(cos x)
 (/ (- (cos x) (cos (* 3 x))) (* 2 (sin (* 2 x))))	(sin x)
 (* 2 (* (sin (+ x (/ pi 4))) (cos (- x (/ pi 4)))))	(+ (sin (* 2 x)) 1)
-(pow (+ (cos x) (sin x)) 2)	(+ 1 (sin (* 2 x)))
 (+ (pow (sec x) 2) (pow (csc x) 2))	(pow (* (sec x) (csc x)) 2)
 (/ (+ 1 (cos (* 2 x))) (- 1 (cos (* 2 x))))	(pow (cot x) 2)
 (/ (+ (tan x) (tan y)) (+ (cot x) (cot y)))	(* (tan x) (tan y))
@@ -488,30 +439,24 @@
 (/ (- (sin x) (sin (* 3 x))) (- (pow (sin x) 2) (pow (cos x) 2)))	(* 2 (sin x))
 (+ (cos (* 2 x)) (pow (sin x) 2))	(pow (cos x) 2)
 (/ (- 1 (* (tan x) (tan y))) (+ 1 (* (tan x) (tan y))))	(/ (cos (+ x y)) (cos (- x y)))
-(+ (pow (sin x) 2) (pow (sin (- (/ pi 2) x)) 2))	1
 (- (pow (+ (sin x) (cos x)) 2) 1)	(sin (* 2 x))
 (/ (+ (sin (* 5 x)) (sin x)) (+ (cos (* 5 x)) (cos x)))	(tan (* 3 x))
 (/ (- (cos x) (cos (* 5 x))) (- (sin (* 5 x)) (sin x)))	(tan (* 3 x))
 (- (* (sin x) (pow (cos x) 3)) (* (cos x) (pow (sin x) 3)))	(/ (sin (* 4 x)) 4)
 (/ (sin (* 3 x)) (+ (* 2 (cos (* 2 x))) 1))	(sin x)
 (/ (cos (* 3 x)) (- (* 2 (cos (* 2 x))) 1))	(cos x)
-(* (sin x) (sec x))	(tan x)
 (/ (- (cos (* 2 x)) (cos (* 4 x))) (* 2 (sin (* 3 x))))	(sin x)
 (/ (+ (sin (* 2 x)) (sin (* 4 x))) (* 2 (cos x)))	(sin (* 3 x))
 (* (* (sin x) (cos x)) (cos (* 2 x)))	(/ (sin (* 4 x)) 4)
 (/ (sin x) (csc x))	(pow (sin x) 2)
-(* (cos x) (tan x))	(sin x)
-(* (sec x) (* (- 1 (sin x)) (+ (sec x) (tan x))))	1
 (* (csc x) (* (+ 1 (cos x)) (- (csc x) (cot x))))	1
 (* (- (sec x) (cos x)) (- (csc x) (sin x)))	(* (sin x) (cos x))
 (* (+ (sin x) (cos x)) (- 1 (* (sin x) (cos x))))	(+ (pow (sin x) 3) (pow (cos x) 3))
 (* (- (sin x) (cos x)) (+ 1 (* (sin x) (cos x))))	(- (pow (sin x) 3) (pow (cos x) 3))
 (- (pow (tan x) 2) (pow (sin x) 2))	(pow (* (tan x) (sin x)) 2)
 (- (pow (cot x) 2) (pow (cos x) 2))	(pow (* (cot x) (cos x)) 2)
-(* (- (csc x) (cot x)) (+ 1 (cos x)))	(sin x)
 (/ (+ 1 (pow (tan x) 2)) (+ 1 (pow (cot x) 2)))	(pow (tan x) 2)
 (/ (- (pow (cos x) 2) (pow (sin x) 2)) (* (sin x) (cos x)))	(* 2 (cot (* 2 x)))
-(* (+ 1 (+ (tan x) (cot x))) (- (sin x) (cos x)))	(- (* (sin x) (tan x)) (* (cos x) (cot x)))
 (+ (- (pow (cos x) 4) (pow (sin x) 4)) 1)	(* 2 (pow (cos x) 2))
 (- (pow (+ (* (sec A) (sec B)) (* (tan A) (tan B))) 2) (pow (+ (* (sec A) (tan B)) (* (tan A) (sec B))) 2))	1
 (* (- (+ 1 (cot A)) (csc A)) (+ (+ 1 (tan A)) (sec A)))	2
@@ -520,7 +465,6 @@
 (/ (- (+ 1 (sin x)) (cos x)) (+ (+ 1 (sin x)) (cos x)))	(tan (/ x 2))
 (* 2 (pow (cos (/ x 2)) 2))	(+ 1 (cos x))
 (* -2 (* (sin (/ (+ A B) 2)) (sin (/ (- A B) 2))))	(- (cos A) (cos B))
-(/ (- (cos x) (cos (* 3 x))) (+ (sin x) (sin (* 3 x))))	(tan x)
 (/ (cos (* 2 x)) (+ 1 (sin (* 2 x))))	(tan (- (/ pi 4) x))
 (/ (+ (cos x) (sin x)) (- (cos x) (sin x)))	(tan (+ (/ pi 4) x))
 (- (* 4 (* (sin x) (pow (cos x) 3))) (* 4 (* (pow (sin x) 3) (cos x))))	(sin (* 4 x))
@@ -536,7 +480,6 @@
 (/ (- (sec (* 8 A)) 1) (- (sec (* 4 A)) 1))	(/ (tan (* 8 A)) (tan (* 2 A)))
 (- (pow (csc x) 4) (pow (cot x) 4))	(+ 1 (* 2 (pow (cot x) 2)))
 (/ (- (tan A) (tan B)) (- (cot B) (cot A)))	(* (tan A) (tan B))
-(* (tan x) (tan (- (/ pi 2) x)))	1
 (- (/ (sin (* 2 x)) (sin x)) (/ (cos (* 2 x)) (cos x)))	(sec x)
 (/ (- (sec x) (cos x)) (- (csc x) (sin x)))	(pow (tan x) 3)
 (+ (/ (cot x) (- (csc x) 1)) (/ (cot x) (+ (csc x) 1)))	(* 2 (sec x))
@@ -701,7 +644,6 @@
 (+ 1 (+ (* 3 (pow (cot x) 2)) (* 3 (pow (cot x) 4))))	(- (pow (csc x) 6) (pow (cot x) 6))
 (pow (+ 1 (pow (tan t) 2)) 3)	(pow (sec t) 6)
 (pow (+ 1 (pow (cot t) 2)) 3)	(pow (csc t) 6)
-(+ (+ 1 (* 2 (pow (tan y) 2))) (pow (tan y) 4))	(pow (sec y) 4)
 (+ (+ 1 (* 2 (pow (cot y) 2))) (pow (cot y) 4))	(pow (csc y) 4)
 (+ (- (pow (sec b) 4) (* 2 (pow (sec b) 2))) 1)	(pow (tan b) 4)
 (+ (- (pow (csc b) 4) (* 2 (pow (csc b) 2))) 1)	(pow (cot b) 4)
@@ -749,15 +691,12 @@
 (+ (pow (sin a) 4) (* (pow (sin a) 2) (pow (cos a) 2)))	(pow (sin a) 2)
 (+ (pow (cos a) 4) (* (pow (sin a) 2) (pow (cos a) 2)))	(pow (cos a) 2)
 (pow (- (pow (sin u) 2) (pow (cos u) 2)) 2)	(pow (cos (* 2 u)) 2)
-(* 4 (* (pow (sin u) 2) (pow (cos u) 2)))	(pow (sin (* 2 u)) 2)
-(+ (pow (+ 1 (cot x)) 2) (pow (- 1 (cot x)) 2))	(* 2 (pow (csc x) 2))
 (+ (+ (pow (sin b) 2) (pow (csc b) 2)) 2)	(pow (+ (sin b) (csc b)) 2)
 (+ (+ (pow (cos b) 2) (pow (sec b) 2)) 2)	(pow (+ (cos b) (sec b)) 2)
 (- (pow (+ (tan y) (cot y)) 2) (pow (- (tan y) (cot y)) 2))	4
 (+ (pow (+ (sec t) (tan t)) 2) (pow (- (sec t) (tan t)) 2))	(+ 2 (* 4 (pow (tan t) 2)))
 (+ (pow (+ (csc t) (cot t)) 2) (pow (- (csc t) (cot t)) 2))	(+ 2 (* 4 (pow (cot t) 2)))
 (+ (+ (pow (sin x) 6) (pow (cos x) 6)) (* 3 (* (pow (sin x) 2) (pow (cos x) 2))))	1
-(* (* (- 1 (sin a)) (+ 1 (sin a))) (+ 1 (pow (tan a) 2)))	1
 (* (* (- 1 (cos a)) (+ 1 (cos a))) (+ 1 (pow (cot a) 2)))	1
 (* (pow (tan u) 2) (- (pow (csc u) 2) 1))	1
 (+ (* (pow (sin x) 4) (pow (csc x) 2)) (* (pow (cos x) 4) (pow (sec x) 2)))	1
@@ -934,7 +873,6 @@
 (/ (* (csc a) (csc b)) (+ (* (cot a) (cot b)) 1))	(sec (- a b))
 (/ (* (csc a) (csc b)) (- (* (cot a) (cot b)) 1))	(sec (+ a b))
 (/ (cos (- a b)) (* (cos a) (sin b)))	(+ (tan a) (cot b))
-(/ (cos (+ a b)) (* (cos a) (sin b)))	(- (cot b) (tan a))
 (/ (- (cos (- a b)) (cos (+ a b))) (+ (cos (- a b)) (cos (+ a b))))	(* (tan a) (tan b))
 (/ (+ (cos (- a b)) (cos (+ a b))) (- (cos (- a b)) (cos (+ a b))))	(* (cot a) (cot b))
 (/ (+ (sin (+ a b)) (sin (- a b))) (- (sin (+ a b)) (sin (- a b))))	(/ (tan a) (tan b))
@@ -1018,3 +956,78 @@
 (+ (* (sin (+ a b)) (cos (- a b))) (+ (* (sin (+ b c)) (cos (- b c))) (* (sin (+ c a)) (cos (- c a)))))	(+ (sin (* 2 a)) (+ (sin (* 2 b)) (sin (* 2 c))))
 (* -1 (* 4 (* (sin (/ (- a b) 2)) (* (sin (/ (- b c) 2)) (sin (/ (- c a) 2))))))	(+ (sin (- a b)) (+ (sin (- b c)) (sin (- c a))))
 (- (* 4 (* (cos (/ (- a b) 2)) (* (cos (/ (- b c) 2)) (cos (/ (- c a) 2))))) 1)	(+ (cos (- a b)) (+ (cos (- b c)) (cos (- c a))))
+(/ (- (sin (* 5 x)) (sin x)) (- (cos x) (cos (* 5 x))))	(cot (* 3 x))
+(+ (+ (pow (sin x) 2) (pow (sin (+ x (/ pi 3))) 2)) (pow (sin (+ x (/ (* 2 pi) 3))) 2))	(/ 3 2)
+(+ (+ (pow (cos x) 2) (pow (cos (+ x (/ pi 3))) 2)) (pow (cos (+ x (/ (* 2 pi) 3))) 2))	(/ 3 2)
+(/ (- (sin a) (sin b)) (- (cos b) (cos a)))	(cot (/ (+ a b) 2))
+(/ (- (cos (* 3 x)) (cos (* 7 x))) (- (sin (* 7 x)) (sin (* 3 x))))	(tan (* 5 x))
+(* (tan x) (tan (+ x (/ pi 2))))	-1
+(/ (+ (cos (* 5 x)) (cos (* 3 x))) (+ (sin (* 5 x)) (sin (* 3 x))))	(cot (* 4 x))
+(- (- (- (cot x) (tan x)) (* 2 (tan (* 2 x)))) (* 4 (tan (* 4 x))))	(* 8 (cot (* 8 x)))
+(* (+ 1 (sec (* 2 x))) (tan x))	(tan (* 2 x))
+(- (- (* (cot x) (cot (* 2 x))) (* (cot (* 2 x)) (cot (* 3 x)))) (* (cot (* 3 x)) (cot x)))	1
+(* (csc x) (sin (- (/ pi 2) x)))	(cot x)
+(/ (- (pow (sin x) 4) (pow (cos x) 4)) (- (pow (sin x) 2) (pow (cos x) 2)))	1
+(/ (* (sec x) (pow (sin x) 2)) (+ 1 (sec x)))	(- 1 (cos x))
+(* (sin (* -1 x)) (cos (- (/ pi 2) x)))	(* -1 (pow (sin x) 2))
+(- (pow (sin x) 2) (* (pow (cos x) 2) (pow (sin x) 2)))	(pow (sin x) 4)
+(+ (/ 1 (+ 1 (cos x))) (/ 1 (- 1 (cos x))))	(* 2 (pow (csc x) 2))
+(/ (- 1 (pow (sin x) 4)) (+ 1 (pow (sin x) 2)))	(pow (cos x) 2)
+(- (cos x) (* (cos x) (pow (sin x) 2)))	(pow (cos x) 3)
+(- (sec (- (/ pi 2) x)) (* (tan (- (/ pi 2) x)) (sin (- (/ pi 2) x))))	(sin x)
+(/ (+ 1 (cos x)) (+ 1 (sec x)))	(cos x)
+(+ (tan x) (+ (cos (* -1 x)) (tan (* -1 x))))	(cos x)
+(/ (* (cos x) (sec x)) (tan x))	(cot x)
+(/ (- (sin x) (csc x)) (- (cos x) (cot x)))	(/ (cos x) (- 1 (sin x)))
+(- (cos (* -1 x)) (sin (* -1 x)))	(+ (cos x) (sin x))
+(/ (- (csc x) (cot x)) (- (sec x) 1))	(cot x)
+(- (pow (cot x) 2) (pow (csc x) 2))	-1
+(/ (- (pow (sec x) 2) 1) (pow (sin x) 2))	(pow (sec x) 2)
+(/ (pow (cos (- (/ pi 2) x)) 2) (cos x))	(* (sin x) (tan x))
+(- (/ 1 (+ (sec x) 1)) (/ 1 (- (sec x) 1)))	(* -1 (* 2 (pow (cot x) 2)))
+(- (tan x) (/ (pow (sec x) 2) (tan x)))	(* -1 (cot x))
+(+ (/ (cos x) (+ 1 (sin x))) (/ (+ 1 (sin x)) (cos x)))	(* 2 (sec x))
+(* (tan (* -1 x)) (cos x))	(* -1 (sin x))
+(* (sin (* -1 x)) (+ 1 (pow (cot x) 2)))	(* -1 (csc x))
+(* (sin x) (- (csc x) (sin x)))	(pow (cos x) 2)
+(/ (- 1 (pow (sin x) 2)) (- (pow (csc x) 2) 1))	(pow (sin x) 2)
+(/ (* (tan x) (cot x)) (sec x))	(cos x)
+(* (sin (- x (/ pi 2))) (tan x))	(* -1 (sin x))
+(- (pow (+ 1 (tan x)) 2) (pow (sec x) 2))	(* 2 (tan x))
+(/ (pow (tan x) 2) (sec x))	(* (sin x) (tan x))
+(/ (pow (cot x) 2) (csc x))	(- (csc x) (sin x))
+(+ (/ 1 (tan x)) (tan x))	(* (sec x) (csc x))
+(/ (- (sec x) 1) (- 1 (cos x)))	(sec x)
+(* (sec x) (- (csc x) (* 2 (sin x))))	(- (cot x) (tan x))
+(- (/ (* (cos x) (cot x)) (- 1 (sin x))) 1)	(csc x)
+(* (sin x) (csc (- (/ pi 2) x)))	(tan x)
+(/ (csc (* -1 x)) (sec (* -1 x)))	(* -1 (cot x))
+(+ (/ (- (cos x) (cos y)) (+ (sin x) (sin y))) (/ (- (sin x) (sin y)) (+ (cos x) (cos y))))	0
+(/ (+ (tan u) (cot v)) (* (tan u) (cot v)))	(+ (tan v) (cot u))
+(* (sec x) (* (tan x) (cos x)))	(tan x)
+(* (pow (sin x) 2) (* (cot x) (csc x)))	(cos x)
+(/ (- 1 (pow (cos x) 2)) (pow (sin x) 2))	1
+(/ (pow (tan x) 2) (- 1 (pow (sec x) 2)))	-1
+(/ (pow (cos x) 2) (- 1 (pow (cos x) 2)))	(pow (cot x) 2)
+(/ (- (pow (sec x) 2) 1) (tan x))	(tan x)
+(/ (- (pow (cos x) 2) 1) (- (pow (sin x) 2) 1))	(pow (tan x) 2)
+(* (cos x) (- (sec x) (cos x)))	(pow (sin x) 2)
+(* (cot x) (+ (tan x) (cot x)))	(pow (csc x) 2)
+(/ (+ (tan x) (cot x)) (cot x))	(pow (sec x) 2)
+(/ (tan x) (+ (tan x) (cot x)))	(pow (sin x) 2)
+(- (* (sec x) (cot x)) (* (cot x) (cos x)))	(sin x)
+(- (* (sin x) (tan x)) (* (csc x) (tan x)))	(* -1 (cos x))
+(/ (* (pow (cot x) 2) (pow (cos x) 2)) (- (pow (cot x) 2) (pow (cos x) 2)))	1
+(/ (- (pow (sin x) 2) (pow (tan x) 2)) (* (pow (tan x) 2) (pow (sin x) 2)))	-1
+(/ (- (+ (pow (+ (sin x) (tan x)) 2) (pow (cos x) 2)) (pow (sec x) 2)) (tan x))	(* 2 (sin x))
+(/ (+ (* 2 (* (sin x) (cos x))) (pow (- (sin x) (cos x)) 2)) (sec x))	(cos x)
+(- (/ (* (sin x) (+ 1 (sin x))) (- 1 (pow (cos x) 2))) 1)	(csc x)
+(+ (/ (- 1 (pow (tan x) 2)) (+ 1 (pow (tan x) 2))) 1)	(* 2 (pow (cos x) 2))
+(/ (- (tan x) (* (tan x) (pow (sin x) 2))) (* 2 (* (sin x) (cos x))))	0.5
+(/ (- (sec x) (cos x)) (* 3 (* (tan x) (sin x))))	(/ 1 3)
+(/ (+ (pow (sin x) 3) (pow (cos x) 3)) (- 1 (* (sin x) (cos x))))	(+ (sin x) (cos x))
+(/ (+ (pow (cos x) 3) (pow (sin x) 3)) (pow (+ (cos x) (sin x)) 2))	(/ (- 1 (* (sin x) (cos x))) (+ (cos x) (sin x)))
+(/ (+ 1 (+ (pow (tan x) 2) (* (pow (sec x) 2) (pow (cot x) 2)))) (+ (pow (csc x) 2) (* (pow (cot x) 2) (pow (csc x) 2))))	(pow (tan x) 2)
+(/ (- (* (cot x) (pow (sec x) 2)) (cot x)) (+ (* (sin x) (tan x)) (cos x)))	(sin x)
+(+ (/ (cos x) (+ 1 (sin x))) (/ (cos x) (- 1 (sin x))))	(* 2 (sec x))
+(+ (/ (sin x) (- 1 (cos x))) (/ (- 1 (cos x)) (sin x)))	(* 2 (csc x))
